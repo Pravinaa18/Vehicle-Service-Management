@@ -1,0 +1,139 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}{{ vehicle.brand }} {{ vehicle.model }} - AutoCare{% endblock %}
+{% block page_title %}{{ vehicle.brand }} {{ vehicle.model }}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('customer_vehicles') }}">My Vehicles</a> / {{ vehicle.vehicle_number }}{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>{{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.year }})</h2>
+    <p style="color: var(--text-secondary);">Registration: <span style="font-family: monospace; font-weight: 700; color: var(--primary);">{{ vehicle.vehicle_number }}</span></p>
+  </div>
+  <div style="display: flex; gap: 0.75rem;">
+    <a href="{{ url_for('book_service', vehicle_id=vehicle.id) }}" class="btn btn-primary">
+      <span>📅</span> Book Service For This Car
+    </a>
+    <a href="{{ url_for('customer_vehicles') }}" class="btn btn-secondary">
+      &larr; Back to Garage
+    </a>
+  </div>
+</div>
+
+<!-- Vehicle Specs & Lifetime Metrics -->
+<div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card">
+    <h3 style="margin-bottom: 1.25rem;">Vehicle Specifications</h3>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; font-size: 0.9rem;">
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Vehicle Type</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ vehicle.vehicle_type }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Powertrain / Fuel</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ vehicle.fuel_type }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Exterior Color</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ vehicle.color }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Odometer Mileage</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ "{:,}".format(vehicle.current_mileage) }} km</div>
+      </div>
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Model Year</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ vehicle.year }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">Registration Added</span>
+        <div style="font-weight: 600; margin-top: 0.2rem;">{{ vehicle.created_at[:10] }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background: linear-gradient(135deg, var(--bg-surface-elevated) 0%, var(--bg-surface) 100%);">
+    <h3 style="margin-bottom: 1.25rem;">Lifetime Maintenance Summary</h3>
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+        <span style="color: var(--text-secondary);">Total Completed Services:</span>
+        <strong style="font-size: 1.25rem;">{{ completed_count }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+        <span style="color: var(--text-secondary);">Upcoming / Active Jobs:</span>
+        <strong style="font-size: 1.25rem; color: var(--primary);">{{ upcoming|length }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: var(--text-secondary);">Total Maintenance Spent:</span>
+        <strong style="font-size: 1.4rem; color: var(--success);">${{ "%.2f"|format(total_spent) }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- History & Records Table for this vehicle -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Service Records for {{ vehicle.vehicle_number }}</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Service Package</th>
+          <th>Lead Mechanic</th>
+          <th>Parts & Labor Summary</th>
+          <th>Total Cost</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if history %}
+          {% for h in history %}
+            <tr>
+              <td><strong>{{ h.appointment_date }}</strong></td>
+              <td>{{ h.service_name }}</td>
+              <td>{{ h.mechanic_name or 'AutoCare Master Tech' }}</td>
+              <td style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary);">
+                {{ h.parts_replaced or h.problem_description or 'Standard inspection and maintenance' }}
+              </td>
+              <td><strong>${{ "%.2f"|format(h.total_cost or h.total_amount) }}</strong></td>
+              <td>
+                {% if h.status == 'Completed' %}
+                  <span class="badge badge-success">Completed</span>
+                {% elif h.status == 'In Service' %}
+                  <span class="badge badge-primary">In Service</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ h.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <a href="{{ url_for('tracking_detail', appointment_id=h.id) }}" class="btn btn-secondary btn-sm">
+                    View
+                  </a>
+                  {% if h.invoice_id %}
+                    <a href="{{ url_for('invoice_detail', invoice_id=h.invoice_id) }}" class="btn btn-outline-primary btn-sm">
+                      Invoice
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              No service records found for this vehicle.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}Live Tracking: {{ apt.appointment_code }} - AutoCare{% endblock %}
+{% block page_title %}Service Bay Tracking{% endblock %}
+{% block breadcrumb %}
+  {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('admin_appointments') }}">Appointments</a> / {{ apt.appointment_code }}
+  {% else %}
+    <a href="{{ url_for('customer_appointments') }}">Appointments</a> / {{ apt.appointment_code }}
+  {% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Appointment {{ apt.appointment_code }}</h2>
+    <p style="color: var(--text-secondary);">Real-time workshop milestone and technician progress tracker</p>
+  </div>
+  <div style="display: flex; gap: 0.75rem;">
+    <button type="button" class="btn btn-secondary" onclick="window.location.reload()">
+      🔄 Refresh Status
+    </button>
+    {% if apt.invoice_id %}
+      <a href="{{ url_for('invoice_detail', invoice_id=apt.invoice_id) }}" class="btn btn-primary">
+        🧾 View Invoice
+      </a>
+    {% endif %}
+    {% if apt.status == 'Completed' and not apt.feedback_id %}
+      <a href="{{ url_for('submit_feedback', appointment_id=apt.id) }}" class="btn btn-success">
+        ⭐ Submit Review
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Visual Tracking Timeline Component -->
+<div class="tracking-card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Current Bay Status</span>
+      <h3 id="live-status-title" style="margin-top: 0.2rem; color: var(--primary);">
+        {% if apt.status == 'In Service' %}⚙️ Service In Progress
+        {% elif apt.status == 'Ready for Pickup' %}✨ Vehicle Ready for Pickup
+        {% elif apt.status == 'Completed' %}✓ Service Completed
+        {% elif apt.status == 'Vehicle Received' %}📥 Vehicle Received at Bay
+        {% elif apt.status == 'Inspection' %}🔍 Diagnostic Inspection
+        {% elif apt.status == 'Quality Check' %}📋 Final Quality Audit
+        {% elif apt.status == 'Cancelled' %}✕ Appointment Cancelled
+        {% else %}📅 {{ apt.status }}{% endif %}
+      </h3>
+    </div>
+
+    <div style="text-align: right;">
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Estimated Completion</span>
+      <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">
+        {{ apt.estimated_completion or 'Same Day Turnaround' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive 7-Node Pipeline -->
+  <div class="timeline-pipeline">
+    <div id="tracking-progress-bar" class="timeline-progress-bar" style="width: 0%;"></div>
+
+    <div class="timeline-node" data-stage="Confirmed">
+      <div class="timeline-node-circle">📅</div>
+      <span class="timeline-node-label">Confirmed</span>
+    </div>
+
+    <div class="timeline-node" data-stage="Vehicle Received">
+      <div class="timeline-node-circle">📥</div>
+      <span class="timeline-node-label">Received</span>
+    </div>
+
+    <div class="timeline-node" data-stage="Inspection">
+      <div class="timeline-node-circle">🔍</div>
+      <span class="timeline-node-label">Inspection</span>
+    </div>
+
+    <div class="timeline-node" data-stage="In Service">
+      <div class="timeline-node-circle">⚙️</div>
+      <span class="timeline-node-label">In Service</span>
+    </div>
+
+    <div class="timeline-node" data-stage="Quality Check">
+      <div class="timeline-node-circle">📋</div>
+      <span class="timeline-node-label">Quality Check</span>
+    </div>
+
+    <div class="timeline-node" data-stage="Ready for Pickup">
+      <div class="timeline-node-circle">✨</div>
+      <span class="timeline-node-label">Ready</span>
+    </div>
+
+    <div class="timeline-node" data-stage="Completed">
+      <div class="timeline-node-circle">✓</div>
+      <span class="timeline-node-label">Completed</span>
+    </div>
+  </div>
+</div>
+
+<!-- Details Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+  <!-- Vehicle & Service Specs -->
+  <div class="card">
+    <h3 style="margin-bottom: 1.25rem;">Vehicle & Service Specs</h3>
+    <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.95rem;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <span style="color: var(--text-secondary);">Vehicle:</span>
+        <strong>{{ apt.brand }} {{ apt.model }} ({{ apt.year }})</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <span style="color: var(--text-secondary);">License Plate:</span>
+        <span style="font-family: monospace; font-weight: 700;">{{ apt.vehicle_number }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <span style="color: var(--text-secondary);">Package Selected:</span>
+        <strong>{{ apt.service_name }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <span style="color: var(--text-secondary);">Standard Duration:</span>
+        <span>⏱️ {{ apt.estimated_duration }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <span style="color: var(--text-secondary);">Estimated Price:</span>
+        <strong style="color: var(--primary);">${{ "%.2f"|format(apt.total_amount) }}</strong>
+      </div>
+      <div>
+        <span style="color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Customer Problem Notes:</span>
+        <div style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 0.75rem; font-style: italic; font-size: 0.875rem;">
+          {{ apt.problem_description or 'Routine maintenance inspection' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assigned Mechanic & Recommendations -->
+  <div class="card">
+    <h3 style="margin-bottom: 1.25rem;">Technician & Workshop Bay</h3>
+
+    {% if apt.mechanic_name %}
+      <div style="display: flex; gap: 1rem; align-items: center; background: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem;">
+        <div class="avatar" style="width: 54px; height: 54px; font-size: 1.25rem;">👨‍🔧</div>
+        <div>
+          <h4 style="margin-bottom: 0.2rem;">{{ apt.mechanic_name }}</h4>
+          <p style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">{{ apt.mechanic_specialty }}</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">{{ apt.mechanic_exp }} Years Master Automotive Experience • 📞 {{ apt.mechanic_phone }}</p>
+        </div>
+      </div>
+    {% else %}
+      <div style="background: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem; text-align: center; color: var(--text-muted);">
+        Lead technician is being assigned by the workshop dispatcher.
+      </div>
+    {% endif %}
+
+    <div>
+      <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">Technician Notes & Diagnostics</h4>
+      <div id="live-tech-notes" style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 1rem; font-size: 0.9rem; line-height: 1.5;">
+        {% if apt.technician_notes %}
+          {{ apt.technician_notes }}
+        {% else %}
+          <span style="color: var(--text-muted); font-style: italic;">Vehicle under standard inspection checklist. All electrical and mechanical checkpoints will be documented here.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tracking.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  initTrackingTimeline("{{ apt.status }}");
+  startLiveTracking({{ apt.id }});
+});
+</script>
+{% endblock %}
+

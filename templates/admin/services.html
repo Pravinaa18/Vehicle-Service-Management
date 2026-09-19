@@ -1,0 +1,263 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Service Catalog Management - AutoCare Admin{% endblock %}
+{% block page_title %}Service Catalog & Pricing{% endblock %}
+{% block breadcrumb %}Services{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Service Catalog Management</h2>
+    <p style="color: var(--text-secondary);">Configure offered automotive maintenance packages, prices, turnaround times, and visibility</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openModal('add-service-modal')">
+    <span>+</span> Add New Service Package
+  </button>
+</div>
+
+<div class="table-card">
+  <div class="table-header-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="table-header-title">Service Packages</h3>
+      <span class="badge badge-neutral">{{ services|length }} packages</span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service Name</th>
+          <th>Category</th>
+          <th>Estimated Price</th>
+          <th>Duration</th>
+          <th>Total Bookings</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if services %}
+          {% for s in services %}
+            <tr>
+              <td>
+                <strong>{{ s.service_name }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 320px;">{{ s.description[:80] }}...</div>
+              </td>
+              <td>
+                <span class="badge badge-neutral">{{ s.category }}</span>
+              </td>
+              <td><strong style="color: var(--primary);">${{ "%.2f"|format(s.estimated_price) }}</strong></td>
+              <td>⏱️ {{ s.estimated_duration }}</td>
+              <td>
+                <strong>{{ s.total_bookings }}</strong> bookings
+              </td>
+              <td>
+                {% if s.status == 'active' %}
+                  <span class="badge badge-success">Active / Public</span>
+                {% else %}
+                  <span class="badge badge-danger">Inactive / Hidden</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openEditServiceModal({{ s.id }}, '{{ s.service_name|escape }}', '{{ s.category|escape }}', '{{ s.description|escape }}', {{ s.estimated_price }}, '{{ s.estimated_duration|escape }}', '{{ s.icon }}', '{{ s.status }}')">
+                    Edit
+                  </button>
+                  <button type="button" class="btn btn-sm {% if s.status == 'active' %}btn-secondary{% else %}btn-success{% endif %}" onclick="confirmToggleService({{ s.id }}, '{{ s.service_name|escape }}', '{{ s.status }}')">
+                    {% if s.status == 'active' %}Deactivate{% else %}Activate{% endif %}
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteService({{ s.id }}, '{{ s.service_name|escape }}')">
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No services found in catalog.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Service Modal -->
+<div id="add-service-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Create Service Package</h4>
+      <button type="button" class="modal-close" onclick="closeModal('add-service-modal')">&times;</button>
+    </div>
+    <form action="{{ url_for('admin_add_service') }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="srv-name">Package Name *</label>
+          <input type="text" id="srv-name" name="service_name" class="form-control" placeholder="e.g. Transmission Fluid Flush" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="srv-cat">Category *</label>
+            <select id="srv-cat" name="category" class="form-select">
+              <option value="Maintenance">Maintenance</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Climate">Climate</option>
+              <option value="Wheels">Wheels & Tires</option>
+              <option value="Detailing">Detailing & Wash</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="srv-price">Estimated Price ($) *</label>
+            <input type="number" step="0.01" id="srv-price" name="estimated_price" class="form-control" placeholder="129.00" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="srv-duration">Estimated Duration *</label>
+            <input type="text" id="srv-duration" name="estimated_duration" class="form-control" placeholder="e.g. 1.5 Hours" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="srv-icon">Icon Symbol</label>
+            <select id="srv-icon" name="icon" class="form-select">
+              <option value="wrench">Wrench 🔧</option>
+              <option value="droplet">Droplet 🛢️</option>
+              <option value="disc">Brake Disc 🛑</option>
+              <option value="cpu">Engine/CPU ⚙️</option>
+              <option value="zap">Battery 🔋</option>
+              <option value="wind">AC / Air ❄️</option>
+              <option value="circle">Tire / Wheel 🛞</option>
+              <option value="sparkles">Detailing ✨</option>
+              <option value="crosshair">Alignment 🎯</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="srv-desc">Package Scope & Description *</label>
+          <textarea id="srv-desc" name="description" class="form-control" rows="3" placeholder="Detailed points of what this package checks and replaces..." required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-service-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Package</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Service Modal -->
+<div id="edit-service-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Edit Service Package</h4>
+      <button type="button" class="modal-close" onclick="closeModal('edit-service-modal')">&times;</button>
+    </div>
+    <form id="edit-service-form" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="edit-srv-name">Package Name</label>
+          <input type="text" id="edit-srv-name" name="service_name" class="form-control" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-srv-cat">Category</label>
+            <select id="edit-srv-cat" name="category" class="form-select">
+              <option value="Maintenance">Maintenance</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Climate">Climate</option>
+              <option value="Wheels">Wheels & Tires</option>
+              <option value="Detailing">Detailing & Wash</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-srv-price">Estimated Price ($)</label>
+            <input type="number" step="0.01" id="edit-srv-price" name="estimated_price" class="form-control" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-srv-duration">Estimated Duration</label>
+            <input type="text" id="edit-srv-duration" name="estimated_duration" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-srv-status">Status</label>
+            <select id="edit-srv-status" name="status" class="form-select">
+              <option value="active">Active / Visible</option>
+              <option value="inactive">Inactive / Hidden</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-srv-desc">Description</label>
+          <textarea id="edit-srv-desc" name="description" class="form-control" rows="3" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('edit-service-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Package</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Hidden Action Forms -->
+<form id="toggle-service-form" method="POST" style="display: none;"></form>
+<form id="delete-service-form" method="POST" style="display: none;"></form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditServiceModal(id, name, cat, desc, price, duration, icon, status) {
+  document.getElementById('edit-service-form').action = "/admin/services/edit/" + id;
+  document.getElementById('edit-srv-name').value = name;
+  document.getElementById('edit-srv-cat').value = cat;
+  document.getElementById('edit-srv-desc').value = desc;
+  document.getElementById('edit-srv-price').value = price;
+  document.getElementById('edit-srv-duration').value = duration;
+  document.getElementById('edit-srv-status').value = status;
+  openModal('edit-service-modal');
+}
+
+function confirmToggleService(id, name, currentStatus) {
+  const action = currentStatus === 'active' ? 'Deactivate' : 'Activate';
+  showConfirmDialog({
+    title: `${action} Service Package`,
+    message: `Are you sure you want to ${action.toLowerCase()} '${name}'?`,
+    confirmText: `Yes, ${action}`,
+    confirmBtnClass: currentStatus === 'active' ? 'btn-danger' : 'btn-success',
+    onConfirm: () => {
+      const form = document.getElementById('toggle-service-form');
+      form.action = "/admin/services/toggle/" + id;
+      form.submit();
+    }
+  });
+}
+
+function confirmDeleteService(id, name) {
+  showConfirmDialog({
+    title: 'Delete Service Package',
+    message: `Are you sure you want to delete '${name}'?`,
+    confirmText: 'Yes, Delete',
+    confirmBtnClass: 'btn-danger',
+    onConfirm: () => {
+      const form = document.getElementById('delete-service-form');
+      form.action = "/admin/services/delete/" + id;
+      form.submit();
+    }
+  });
+}
+</script>
+{% endblock %}

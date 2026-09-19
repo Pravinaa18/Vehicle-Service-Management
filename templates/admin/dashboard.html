@@ -1,0 +1,281 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin Dashboard - AutoCare{% endblock %}
+{% block page_title %}Service Center Executive Dashboard{% endblock %}
+{% block breadcrumb %}Executive Overview{% endblock %}
+
+{% block admin_content %}
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Total Customers</span>
+      <span class="kpi-value">{{ total_customers }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-blue">👥</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Registered Fleet</span>
+      <span class="kpi-value">{{ total_vehicles }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-cyan">🚘</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Today's Appointments</span>
+      <span class="kpi-value">{{ today_appointments }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-blue">📅</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Active Workshop Jobs</span>
+      <span class="kpi-value">{{ active_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-amber">⚙️</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Pending Intake</span>
+      <span class="kpi-value">{{ pending_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-red">⏳</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Services Completed</span>
+      <span class="kpi-value">{{ completed_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-green">✓</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Total Revenue</span>
+      <span class="kpi-value">${{ "%.2f"|format(total_revenue) }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-green">💵</div>
+  </div>
+</div>
+
+<!-- Charts Grid -->
+<div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.15rem;">Monthly Revenue Growth ($)</h3>
+      <span class="badge badge-success">Live Cashflow</span>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="adminRevenueChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.15rem;">Job Status Breakdown</h3>
+      <span class="badge badge-primary">Workshop Bays</span>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="adminStatusChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+    <h3 style="font-size: 1.15rem;">Top In-Demand Service Packages</h3>
+    <span class="badge badge-neutral">Volume Metrics</span>
+  </div>
+  <div style="height: 220px; position: relative;">
+    <canvas id="adminServicesChart"></canvas>
+  </div>
+</div>
+
+<!-- Recent Appointments & Recent Customers Grid -->
+<div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.5rem;">
+  <!-- Recent Appointments -->
+  <div class="table-card">
+    <div class="table-header-bar">
+      <h3 class="table-header-title">Recent Appointments</h3>
+      <a href="{{ url_for('admin_appointments') }}" class="btn btn-secondary btn-sm">All Bookings &rarr;</a>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Customer & Vehicle</th>
+            <th>Service</th>
+            <th>Mechanic</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in recent_appointments %}
+            <tr>
+              <td>
+                <a href="{{ url_for('tracking_detail', appointment_id=apt.id) }}" style="font-family: monospace; font-weight: 700; color: var(--primary);">
+                  {{ apt.appointment_code }}
+                </a>
+              </td>
+              <td>
+                <strong>{{ apt.customer_name }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.brand }} {{ apt.model }} ({{ apt.vehicle_number }})</div>
+              </td>
+              <td>{{ apt.service_name }}</td>
+              <td>
+                {% if apt.mechanic_name %}
+                  <span style="font-weight: 600; font-size: 0.85rem;">{{ apt.mechanic_name }}</span>
+                {% else %}
+                  <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="openAssignMechanicModal({{ apt.id }}, null)">
+                    + Assign
+                  </button>
+                {% endif %}
+              </td>
+              <td>
+                {% if apt.status == 'Completed' %}
+                  <span class="badge badge-success">Completed</span>
+                {% elif apt.status == 'In Service' %}
+                  <span class="badge badge-primary">In Service</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ apt.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openUpdateStatusModal({{ apt.id }}, '{{ apt.status }}')">
+                  Status
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Customers -->
+  <div class="table-card">
+    <div class="table-header-bar">
+      <h3 class="table-header-title">Recent Clients</h3>
+      <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary btn-sm">Directory &rarr;</a>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Vehicles</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in recent_customers %}
+            <tr>
+              <td>
+                <strong>{{ c.full_name }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ c.email }}</div>
+              </td>
+              <td><strong>{{ c.vehicle_count }}</strong> cars</td>
+              <td>
+                {% if c.status == 'active' %}
+                  <span class="badge badge-success">Active</span>
+                {% else %}
+                  <span class="badge badge-danger">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('admin_customer_detail', user_id=c.id) }}" class="btn btn-secondary btn-sm">
+                  View
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Mechanic Modal -->
+<div id="assign-mechanic-modal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 460px;">
+    <div class="modal-header">
+      <h4 class="modal-title">Assign Lead Mechanic</h4>
+      <button type="button" class="modal-close" onclick="closeModal('assign-mechanic-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="assign-mechanic-select">Select Master Technician *</label>
+        <select id="assign-mechanic-select" class="form-select">
+          <option value="">-- Choose Mechanic --</option>
+          {% for m in mechanics %}
+            <option value="{{ m.id }}">
+              {{ m.name }} ({{ m.specialization }} • {{ m.availability|capitalize }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('assign-mechanic-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitAssignMechanic()">Assign Technician</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="update-status-modal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-header">
+      <h4 class="modal-title">Advance Service Status</h4>
+      <button type="button" class="modal-close" onclick="closeModal('update-status-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="update-status-select">Select New Status *</label>
+        <select id="update-status-select" class="form-select">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Vehicle Received">Vehicle Received</option>
+          <option value="Inspection">Inspection</option>
+          <option value="In Service">In Service</option>
+          <option value="Quality Check">Quality Check</option>
+          <option value="Ready for Pickup">Ready for Pickup</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="update-status-notes">Technician / Inspection Notes</label>
+        <textarea id="update-status-notes" class="form-control" rows="3" placeholder="Document part replacements, diagnostic codes, or work completion summary..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('update-status-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitUpdateStatus()">Save Status</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const chartData = {{ chart_data|tojson }};
+  initAdminCharts(chartData);
+});
+</script>
+{% endblock %}

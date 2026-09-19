@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - AutoCare{% endblock %}
+
+{% block content %}
+<div class="section">
+  <div class="container" style="max-width: 860px;">
+    <div class="card" style="padding: 3rem;">
+      <h1 style="margin-bottom: 1.5rem; font-size: 2.25rem;">Privacy Policy</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">Last Updated: September 19, 2026</p>
+
+      <div style="color: var(--text-secondary); line-height: 1.8; display: flex; flex-direction: column; gap: 1.5rem;">
+        <p>At AutoCare ("we", "our", or "us"), we prioritize your privacy and are committed to safeguarding the personal information and vehicle diagnostic records entrusted to our management platform.</p>
+
+        <h3 style="color: var(--text-primary);">1. Information We Collect</h3>
+        <p>We collect information necessary to deliver premier automotive servicing, including your name, email address, telephone number, vehicle specifications (make, model, year, VIN/license registration, odometer mileage readings), and service histories.</p>
+
+        <h3 style="color: var(--text-primary);">2. How We Use Your Data</h3>
+        <p>Your information is used strictly to process service bookings, assign specialized mechanics, notify you of live vehicle milestones (e.g., inspection completed, ready for pickup), generate digital invoices, and preserve lifelong maintenance histories.</p>
+
+        <h3 style="color: var(--text-primary);">3. Data Protection and Security</h3>
+        <p>We deploy robust cryptographic password hashing (Werkzeug / PBKDF2), secure session control, parameter-sanitized database queries, and restricted role-based authorizations to ensure your private vehicle records are secure.</p>
+
+        <h3 style="color: var(--text-primary);">4. Contact Support</h3>
+        <p>If you have any questions regarding your data or account privacy, contact our Data Protection Officer at <strong>privacy@autocare.com</strong>.</p>
+      </div>
+
+      <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

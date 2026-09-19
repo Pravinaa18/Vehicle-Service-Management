@@ -1,0 +1,205 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}Customer Dashboard - AutoCare{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block dashboard_content %}
+
+<!-- Quick Actions Banner -->
+<div class="quick-actions-bar">
+  <div class="quick-actions-left">
+    <h3>Welcome back, {{ current_user.full_name }}!</h3>
+    <p style="color: var(--text-secondary);">Manage your vehicle maintenance, book appointments, and track jobs in real time.</p>
+  </div>
+  <div class="quick-action-buttons">
+    <a href="{{ url_for('customer_vehicles') }}" class="btn btn-secondary btn-sm">
+      <span>🚘</span> Add Vehicle
+    </a>
+    <a href="{{ url_for('book_service') }}" class="btn btn-primary btn-sm">
+      <span>📅</span> Book Service
+    </a>
+    <a href="{{ url_for('customer_appointments') }}" class="btn btn-secondary btn-sm">
+      <span>⏱️</span> View Appointments
+    </a>
+    {% if upcoming_apt %}
+      <a href="{{ url_for('tracking_detail', appointment_id=upcoming_apt.id) }}" class="btn btn-outline-primary btn-sm">
+        <span>📍</span> Track Current Service
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Total Vehicles</span>
+      <span class="kpi-value">{{ total_vehicles }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-blue">🚘</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Upcoming Bookings</span>
+      <span class="kpi-value">{{ upcoming_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-cyan">📅</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">In-Workshop Jobs</span>
+      <span class="kpi-value">{{ pending_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-amber">⚙️</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Completed Services</span>
+      <span class="kpi-value">{{ completed_services }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-green">✓</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Total Spent</span>
+      <span class="kpi-value">${{ "%.2f"|format(total_spent) }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-green">💵</div>
+  </div>
+</div>
+
+<!-- Current / Next Active Appointment Banner -->
+{% if upcoming_apt %}
+  <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+      <div>
+        <span class="badge badge-primary" style="margin-bottom: 0.25rem;">Active Service In Progress</span>
+        <h3>{{ upcoming_apt.brand }} {{ upcoming_apt.model }} ({{ upcoming_apt.vehicle_number }})</h3>
+      </div>
+      <div>
+        {% if upcoming_apt.status == 'In Service' %}
+          <span class="badge badge-primary">⚙️ In Service</span>
+        {% elif upcoming_apt.status == 'Ready for Pickup' %}
+          <span class="badge badge-success">✓ Ready for Pickup</span>
+        {% elif upcoming_apt.status == 'Confirmed' %}
+          <span class="badge badge-info">📅 Confirmed</span>
+        {% else %}
+          <span class="badge badge-warning">{{ upcoming_apt.status }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; background: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Package</span>
+        <div style="font-weight: 600;">{{ upcoming_apt.service_name }}</div>
+      </div>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Scheduled For</span>
+        <div style="font-weight: 600;">{{ upcoming_apt.appointment_date }} at {{ upcoming_apt.time_slot }}</div>
+      </div>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Assigned Mechanic</span>
+        <div style="font-weight: 600;">{{ upcoming_apt.mechanic_name or 'AutoCare Master Tech' }}</div>
+      </div>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Estimated Completion</span>
+        <div style="font-weight: 600; color: var(--primary);">{{ upcoming_apt.estimated_completion or 'Same Day Turnaround' }}</div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+      <a href="{{ url_for('tracking_detail', appointment_id=upcoming_apt.id) }}" class="btn btn-primary btn-sm">
+        <span>📍</span> View Live Tracking Timeline &rarr;
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Recent Service Activity Table -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Recent Service History</h3>
+    <a href="{{ url_for('service_history') }}" class="btn btn-secondary btn-sm">View All History &rarr;</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Vehicle</th>
+          <th>Service Performed</th>
+          <th>Mechanic</th>
+          <th>Status</th>
+          <th>Invoice</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if recent_history %}
+          {% for r in recent_history %}
+            <tr>
+              <td><strong>{{ r.appointment_date }}</strong></td>
+              <td>
+                <a href="{{ url_for('vehicle_detail', vehicle_id=r.vehicle_id) }}" style="font-weight: 600;">
+                  {{ r.brand }} {{ r.model }}
+                </a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ r.vehicle_number }}</div>
+              </td>
+              <td>{{ r.service_name }}</td>
+              <td>{{ r.mechanic_name or 'AutoCare Staff' }}</td>
+              <td>
+                {% if r.status == 'Completed' %}
+                  <span class="badge badge-success">Completed</span>
+                {% elif r.status == 'In Service' %}
+                  <span class="badge badge-primary">In Service</span>
+                {% elif r.status == 'Cancelled' %}
+                  <span class="badge badge-danger">Cancelled</span>
+                {% else %}
+                  <span class="badge badge-info">{{ r.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.invoice_id %}
+                  {% if r.payment_status == 'Paid' %}
+                    <span class="badge badge-success">Paid</span>
+                  {% else %}
+                    <span class="badge badge-warning">Pending</span>
+                  {% endif %}
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">Processing</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <a href="{{ url_for('tracking_detail', appointment_id=r.id) }}" class="btn btn-secondary btn-sm" title="View details & tracking">
+                    Details
+                  </a>
+                  {% if r.status == 'Completed' and not r.feedback_id %}
+                    <a href="{{ url_for('submit_feedback', appointment_id=r.id) }}" class="btn btn-outline-primary btn-sm" title="Leave review">
+                      ⭐ Review
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No past services found. <a href="{{ url_for('book_service') }}">Book your first service</a> today!
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

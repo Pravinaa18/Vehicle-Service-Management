@@ -1,0 +1,80 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}My Profile - AutoCare{% endblock %}
+{% block page_title %}Account Profile & Security{% endblock %}
+{% block breadcrumb %}Profile{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+  <!-- Personal Details Form -->
+  <div class="card">
+    <h3 style="margin-bottom: 1.5rem;">Personal Information</h3>
+
+    <form action="{{ url_for('customer_profile') }}" method="POST">
+      <input type="hidden" name="action" value="update_info">
+
+      <div class="form-group">
+        <label class="form-label" for="prof-name">Full Name *</label>
+        <input type="text" id="prof-name" name="full_name" class="form-control" value="{{ user.full_name }}" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="prof-email">Email Address (Login ID)</label>
+        <input type="email" id="prof-email" class="form-control" value="{{ user.email }}" disabled title="Email address cannot be modified directly">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Contact admin support to transfer accounts to a different email.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="prof-phone">Phone Number *</label>
+        <input type="tel" id="prof-phone" name="phone" class="form-control" value="{{ user.phone }}" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Account Role & Status</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <span class="badge badge-primary">{{ user.role|capitalize }}</span>
+          <span class="badge badge-success">{{ user.status|capitalize }}</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">
+        Save Changes
+      </button>
+    </form>
+  </div>
+
+  <!-- Security / Change Password -->
+  <div class="card">
+    <h3 style="margin-bottom: 1.5rem;">Security & Password</h3>
+
+    <form action="{{ url_for('customer_profile') }}" method="POST">
+      <input type="hidden" name="action" value="change_password">
+
+      <div class="form-group">
+        <label class="form-label" for="prof-old-pwd">Current Password *</label>
+        <input type="password" id="prof-old-pwd" name="old_password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="prof-new-pwd">New Password (Min 6 characters) *</label>
+        <input type="password" id="prof-new-pwd" name="new_password" class="form-control" placeholder="••••••••" required oninput="checkPasswordStrength(this.value)">
+        <div class="pwd-meter">
+          <div id="pwd-meter-fill" class="pwd-meter-fill"></div>
+        </div>
+        <div id="pwd-strength-label" style="font-size: 0.75rem; margin-top: 4px; text-align: right;"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="prof-confirm-pwd">Confirm New Password *</label>
+        <input type="password" id="prof-confirm-pwd" name="confirm_password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-secondary" style="margin-top: 1rem;">
+        Update Password
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

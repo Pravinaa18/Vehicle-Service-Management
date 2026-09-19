@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Customer Reviews & Quality - AutoCare Admin{% endblock %}
+{% block page_title %}Customer Reviews & Quality Audits{% endblock %}
+{% block breadcrumb %}Feedback{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Customer Ratings & Quality Audits</h2>
+    <p style="color: var(--text-secondary);">Direct customer feedback submitted following completed vehicle services</p>
+  </div>
+  <div class="card" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem;">
+    <div style="font-size: 2rem; color: #f59e0b;">⭐</div>
+    <div>
+      <div style="font-size: 1.5rem; font-weight: 800; line-height: 1;">{{ avg_rating }} / 5.0</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">Overall Customer Satisfaction</div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem;">
+  {% if feedbacks %}
+    {% for f in feedbacks %}
+      <div class="card" style="display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+          <div>
+            <h4 style="margin-bottom: 0.2rem;">{{ f.full_name }}</h4>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ f.brand }} {{ f.model }} ({{ f.vehicle_number }})</div>
+          </div>
+          <div style="color: #f59e0b; font-size: 1.1rem; font-weight: 700;">
+            {% for i in range(f.rating) %}★{% endfor %}
+          </div>
+        </div>
+
+        <div style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem; font-size: 0.825rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <span style="color: var(--text-muted);">Package:</span>
+            <strong>{{ f.service_name }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Mechanic:</span>
+            <strong>{{ f.mechanic_name or 'AutoCare Specialist' }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Quality Rating:</span>
+            <strong>{{ f.service_quality }} / 5</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Tech Rating:</span>
+            <strong>{{ f.mechanic_rating }} / 5</strong>
+          </div>
+        </div>
+
+        <div style="font-size: 0.9rem; color: var(--text-secondary); font-style: italic; line-height: 1.5; margin-bottom: 1.25rem; flex: 1;">
+          "{{ f.review }}"
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+          <span>Submitted on {{ f.created_at }}</span>
+          <span style="color: var(--success);">✓ Verified Completed Service</span>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card empty-state" style="grid-column: 1 / -1;">
+      <div class="empty-state-icon">⭐</div>
+      <h3 class="empty-state-title">No reviews submitted yet</h3>
+      <p class="empty-state-text">Customers can submit ratings and written reviews upon service completion.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

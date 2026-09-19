@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - AutoCare Vehicle Service Management{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <div class="brand-icon" style="width: 46px; height: 46px; font-size: 1.4rem;">🚗</div>
+      </div>
+      <h2>Welcome Back</h2>
+      <p style="font-size: 0.9rem; margin-top: 0.35rem;">Log in to manage your vehicles and track appointments</p>
+    </div>
+
+    <!-- Demo Credentials Quick-Fill Pills -->
+    <div class="demo-credentials-box">
+      <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Quick Test Accounts</span>
+      <div class="demo-pills">
+        <button type="button" class="demo-pill-btn" onclick="fillDemoCredentials('customer')">
+          👤 Demo Customer
+        </button>
+        <button type="button" class="demo-pill-btn" onclick="fillDemoCredentials('admin')">
+          🛡️ Demo Admin
+        </button>
+      </div>
+    </div>
+
+    <form action="{{ url_for('login', next=request.args.get('next')) }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email Address</label>
+        <input type="email" id="login-email" name="email" class="form-control" placeholder="name@example.com" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <label class="form-label" for="login-password" style="margin-bottom: 0;">Password</label>
+          <a href="{{ url_for('forgot_password') }}" style="font-size: 0.8rem;">Forgot password?</a>
+        </div>
+        <input type="password" id="login-password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label class="form-check">
+          <input type="checkbox" name="remember_me" checked>
+          <span>Remember me on this browser</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%;">
+        Sign In to Account
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); font-size: 0.9rem;">
+      Don't have an account yet? 
+      <a href="{{ url_for('signup') }}" style="font-weight: 600;">Create Account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
