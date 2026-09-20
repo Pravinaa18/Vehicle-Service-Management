@@ -1,0 +1,147 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Customer Profile: {{ customer.full_name }} - AutoCare Admin{% endblock %}
+{% block page_title %}Customer Profile: {{ customer.full_name }}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('admin_customers') }}">Customers</a> / {{ customer.full_name }}{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>{{ customer.full_name }}</h2>
+    <p style="color: var(--text-secondary);">Client Profile & Fleet Maintenance Records</p>
+  </div>
+  <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary">
+    &larr; Back to Customers Directory
+  </a>
+</div>
+
+<!-- Customer Bio Card -->
+<div class="card" style="margin-bottom: 2rem;">
+  <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+    <div class="avatar" style="width: 64px; height: 64px; font-size: 1.5rem;">
+      {{ customer.full_name[:1] }}
+    </div>
+    <div style="flex: 1;">
+      <h3 style="margin-bottom: 0.25rem;">{{ customer.full_name }}</h3>
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
+        <div>✉️ {{ customer.email }}</div>
+        <div>📞 {{ customer.phone }}</div>
+        <div>📅 Member Since: {{ customer.created_at[:10] }}</div>
+      </div>
+    </div>
+    <div>
+      {% if customer.status == 'active' %}
+        <span class="badge badge-success" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;">Active Account</span>
+      {% else %}
+        <span class="badge badge-danger" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;">Account Suspended</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Customer Fleet -->
+<div class="table-card" style="margin-bottom: 2rem;">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Registered Fleet ({{ vehicles|length }})</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>License Number</th>
+          <th>Make & Model</th>
+          <th>Year</th>
+          <th>Fuel / Powertrain</th>
+          <th>Body Type</th>
+          <th>Mileage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if vehicles %}
+          {% for v in vehicles %}
+            <tr>
+              <td><strong style="font-family: monospace; color: var(--primary);">{{ v.vehicle_number }}</strong></td>
+              <td><strong>{{ v.brand }} {{ v.model }}</strong></td>
+              <td>{{ v.year }}</td>
+              <td>{{ v.fuel_type }}</td>
+              <td>{{ v.vehicle_type }}</td>
+              <td>{{ "{:,}".format(v.current_mileage) }} km</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              No vehicles registered for this client.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Customer Appointments -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Service History & Bookings ({{ appointments|length }})</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Date</th>
+          <th>Vehicle</th>
+          <th>Service Package</th>
+          <th>Mechanic</th>
+          <th>Status</th>
+          <th>Invoice</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if appointments %}
+          {% for a in appointments %}
+            <tr>
+              <td>
+                <a href="{{ url_for('tracking_detail', appointment_id=a.id) }}" style="font-family: monospace; font-weight: 700; color: var(--primary);">
+                  {{ a.appointment_code }}
+                </a>
+              </td>
+              <td>{{ a.appointment_date }}</td>
+              <td>{{ a.brand }} {{ a.model }} ({{ a.vehicle_number }})</td>
+              <td>{{ a.service_name }}</td>
+              <td>{{ a.mechanic_name or 'Unassigned' }}</td>
+              <td>
+                {% if a.status == 'Completed' %}
+                  <span class="badge badge-success">Completed</span>
+                {% elif a.status == 'In Service' %}
+                  <span class="badge badge-primary">In Service</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ a.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if a.invoice_id %}
+                  <a href="{{ url_for('invoice_detail', invoice_id=a.invoice_id) }}" class="btn btn-secondary btn-sm">
+                    Invoice
+                  </a>
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">-</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              No appointments on record for this customer.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

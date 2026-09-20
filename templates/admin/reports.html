@@ -1,0 +1,123 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Operational & Financial Reports - AutoCare Admin{% endblock %}
+{% block page_title %}Operational & Financial Intelligence{% endblock %}
+{% block breadcrumb %}Performance Reports{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Workshop Performance Reports</h2>
+    <p style="color: var(--text-secondary);">Comprehensive breakdown of service package revenue and mechanic productivity</p>
+  </div>
+  <button type="button" class="btn btn-secondary" onclick="window.print()">
+    🖨️ Print Executive Report
+  </button>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="kpi-grid" style="margin-bottom: 2rem;">
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Gross Paid Revenue</span>
+      <span class="kpi-value" style="color: var(--success);">${{ "%.2f"|format(total_revenue) }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-green">💵</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Jobs Fully Completed</span>
+      <span class="kpi-value">{{ total_completed }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-blue">✓</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-info">
+      <span class="kpi-label">Average Ticket Size</span>
+      <span class="kpi-value">${{ "%.2f"|format((total_revenue / total_completed) if total_completed > 0 else 0) }}</span>
+    </div>
+    <div class="kpi-icon-wrap kpi-icon-cyan">📊</div>
+  </div>
+</div>
+
+<!-- Revenue by Service Package -->
+<div class="table-card" style="margin-bottom: 2rem;">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Revenue & Volume by Service Package</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service Name</th>
+          <th>Category</th>
+          <th>Total Bookings</th>
+          <th>Collected Revenue</th>
+          <th>Revenue Contribution</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in revenue_by_service %}
+          {% set rev = s.total_revenue or 0.0 %}
+          {% set pct = (rev / total_revenue * 100) if total_revenue > 0 else 0 %}
+          <tr>
+            <td><strong>{{ s.service_name }}</strong></td>
+            <td><span class="badge badge-neutral">{{ s.category }}</span></td>
+            <td><strong>{{ s.bookings }}</strong> bookings</td>
+            <td><strong style="color: var(--primary);">${{ "%.2f"|format(rev) }}</strong></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="flex: 1; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; max-width: 140px;">
+                  <div style="height: 100%; width: {{ pct }}%; background: var(--primary);"></div>
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 600;">{{ "%.1f"|format(pct) }}%</span>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Mechanic Workload & Productivity -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Technician Workload & Quality Ratings</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Technician Name</th>
+          <th>Specialization</th>
+          <th>Total Jobs Assigned</th>
+          <th>Successfully Completed</th>
+          <th>Customer Satisfaction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in mechanic_workload %}
+          <tr>
+            <td><strong>{{ m.name }}</strong></td>
+            <td>{{ m.specialization }}</td>
+            <td><strong>{{ m.total_jobs }}</strong> jobs</td>
+            <td><span class="badge badge-success">{{ m.completed_jobs }} completed</span></td>
+            <td>
+              {% if m.rating %}
+                <strong style="color: #f59e0b;">⭐ {{ m.rating }} / 5.0</strong>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.85rem;">No reviews yet</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

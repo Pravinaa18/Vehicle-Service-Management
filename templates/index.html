@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}AutoCare - Complete Vehicle Service Management Made Simple{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="container hero-grid">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span>⚡</span> Next-Gen Automotive Platform
+      </div>
+      <h1 class="hero-title">
+        Complete Vehicle Service Management <span class="text-gradient">Made Simple</span>
+      </h1>
+      <p class="hero-subtitle">
+        Book, track and manage your vehicle services from one powerful platform. Experience certified mechanics, transparent estimates, and live timeline tracking.
+      </p>
+
+      <div class="hero-cta-group">
+        {% if current_user %}
+          <a href="{{ url_for('book_service') }}" class="btn btn-primary btn-lg">
+            <span>📅</span> Book a Service
+          </a>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+            <span>⚡</span> Open Dashboard
+          </a>
+        {% else %}
+          <a href="{{ url_for('login', next=url_for('book_service')) }}" class="btn btn-primary btn-lg">
+            <span>📅</span> Book a Service
+          </a>
+          <a href="#services" class="btn btn-secondary btn-lg">
+            <span>🔍</span> Explore Services
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <h4>{{ stats.services_count }}+</h4>
+          <p>Services Completed</p>
+        </div>
+        <div class="stat-item">
+          <h4>{{ stats.happy_clients }}+</h4>
+          <p>Satisfied Drivers</p>
+        </div>
+        <div class="stat-item">
+          <h4>{{ stats.expert_mechanics }}</h4>
+          <p>Certified Technicians</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-card-preview">
+      <div class="hero-card-header">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Live Bay Tracking</span>
+          <h4 style="margin-top: 0.2rem;">BMW 330i (NY-7892-AB)</h4>
+        </div>
+        <div class="hero-status-pill">
+          <span class="pulse-indicator"></span>
+          In Service
+        </div>
+      </div>
+
+      <div style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
+          <span style="color: var(--text-secondary);">Lead Technician:</span>
+          <strong>Marcus Brody (Master Tech)</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
+          <span style="color: var(--text-secondary);">Current Operation:</span>
+          <strong>Brake Pad & Rotor Replacement</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+          <span style="color: var(--text-secondary);">Estimated Ready:</span>
+          <strong style="color: var(--primary);">Today, 04:30 PM</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm" style="flex: 1;">
+          View Live Tracking
+        </a>
+        <a href="#services" class="btn btn-secondary btn-sm" style="flex: 1;">
+          View Catalog
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services Catalog Section -->
+<section id="services" class="section" style="background-color: var(--bg-surface);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Comprehensive Packages</span>
+      <h2 class="section-title">Specialized Automotive Services</h2>
+      <p class="section-subtitle">Transparent pricing, guaranteed OEM quality parts, and expert certified mechanics for every repair and checkup.</p>
+    </div>
+
+    <div class="services-grid">
+      {% for service in services %}
+        <div class="service-card">
+          <div class="service-icon-wrap">
+            {% if service.icon == 'wrench' %}🔧
+            {% elif service.icon == 'droplet' %}🛢️
+            {% elif service.icon == 'disc' %}🛑
+            {% elif service.icon == 'cpu' %}⚙️
+            {% elif service.icon == 'zap' %}🔋
+            {% elif service.icon == 'wind' %}❄️
+            {% elif service.icon == 'circle' %}🛞
+            {% elif service.icon == 'sparkles' %}✨
+            {% elif service.icon == 'crosshair' %}🎯
+            {% else %}🚗{% endif %}
+          </div>
+          <span class="badge badge-neutral" style="width: fit-content; margin-bottom: 0.75rem;">{{ service.category }}</span>
+          <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">{{ service.service_name }}</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1.25rem; flex: 1;">{{ service.description }}</p>
+
+          <div class="service-meta">
+            <div>
+              <div class="service-price">${{ "%.2f"|format(service.estimated_price) }}</div>
+              <div class="service-duration">⏱️ Approx {{ service.estimated_duration }}</div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openServiceModal('{{ service.id }}', '{{ service.service_name|escape }}', '{{ service.category|escape }}', '{{ service.description|escape }}', '{{ "%.2f"|format(service.estimated_price) }}', '{{ service.estimated_duration|escape }}')">
+              View Details
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Service Details Modal -->
+<div id="service-details-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div>
+        <span id="modal-service-category" class="badge badge-primary" style="margin-bottom: 0.35rem;">Category</span>
+        <h3 id="modal-service-title" class="modal-title">Service Details</h3>
+      </div>
+      <button type="button" class="modal-close" onclick="closeModal('service-details-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="modal-service-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.7;"></p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem;">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Estimated Price</span>
+          <h4 id="modal-service-price" style="color: var(--primary); font-size: 1.5rem; margin-top: 0.25rem;">$0.00</h4>
+        </div>
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Average Duration</span>
+          <h4 id="modal-service-duration" style="font-size: 1.2rem; margin-top: 0.25rem;">-</h4>
+        </div>
+      </div>
+
+      <div style="background: var(--success-light); border-radius: var(--radius-md); padding: 1rem; color: var(--success); font-size: 0.875rem;">
+        ✓ Includes complimentary 25-point safety inspection and computerized diagnostic report.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('service-details-modal')">Close</button>
+      <a id="modal-service-book-btn" href="{{ url_for('login', next=url_for('book_service')) }}" class="btn btn-primary">
+        Book This Service
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- How It Works Section -->
+<section id="how-it-works" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Streamlined Process</span>
+      <h2 class="section-title">How AutoCare Works</h2>
+      <p class="section-subtitle">From instant online booking to driving off with confidence in 6 clear, seamless steps.</p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h4>Register</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Create a secure client account in under 30 seconds.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h4>Add Vehicle</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Save your vehicle make, model, registration & mileage.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h4>Select Service</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Pick from standard maintenance or describe your problem.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h4>Book Appointment</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Choose your preferred date and convenient time slot.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">5</div>
+        <h4>Track Service</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Monitor real-time progress on your visual timeline.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">6</div>
+        <h4>Receive Vehicle</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Digital invoice, instant payment, and drive away happy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- About AutoCare Section -->
+<section id="about" class="section" style="background-color: var(--bg-body);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">About AutoCare</span>
+      <h2 class="section-title">Precision Engineering & Modern Service</h2>
+      <p class="section-subtitle">Founded on the principle that vehicle maintenance should be transparent, predictable, and stress-free.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+      <div class="card" style="padding: 2rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 1rem;">🏢</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">State-of-the-Art Facility</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">12 computerized hydraulic bays equipped with high-precision 3D laser alignment, OBD-II telemetry scanners, and certified EV safe-handling zones.</p>
+      </div>
+      <div class="card" style="padding: 2rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 1rem;">🎓</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Master Certified Technicians</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">Our team holds ASE Master certifications with specialized cross-training in hybrid battery health, computer diagnostics, and OEM precision servicing.</p>
+      </div>
+      <div class="card" style="padding: 2rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 1rem;">📱</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">100% Digital Transparency</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">Watch your vehicle advance through live bay stages from your phone. Receive itemized digital invoices and complete service histories with guaranteed parts warranty.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why Choose Us Section -->
+<section id="why-us" class="section" style="background-color: var(--bg-surface);">
+
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Our Commitment</span>
+      <h2 class="section-title">Why Drivers Trust AutoCare</h2>
+      <p class="section-subtitle">We merge cutting-edge automotive diagnostics with uncompromising honesty and customer care.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">👨‍🔧</div>
+        <div>
+          <h4>Certified Mechanics</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">ASE-certified automotive technicians with specialized master certifications across all makes.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">💵</div>
+        <div>
+          <h4>Transparent Pricing</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">Detailed cost breakdowns with no surprise charges. Every single part and labor charge is authorized upfront.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">⏱️</div>
+        <div>
+          <h4>Live Service Tracking</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">Check vehicle inspection status, mechanic assignments, and estimated completion times in real-time.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📑</div>
+        <div>
+          <h4>Digital Service History</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">Preserve your vehicle's resale value with permanent digital records, part numbers, and invoices.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📅</div>
+        <div>
+          <h4>Easy Online Scheduling</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">Schedule, reschedule, or cancel appointments directly from your mobile phone or laptop.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div>
+          <h4>Secure Customer Accounts</h4>
+          <p style="font-size: 0.9rem; margin-top: 0.35rem;">Industry standard password encryption, protected receipts, and strict role-based access control.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials Section -->
+<section id="testimonials" class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Verified Reviews</span>
+      <h2 class="section-title">What Our Customers Say</h2>
+      <p class="section-subtitle">Real feedback from satisfied car owners across the city.</p>
+    </div>
+
+    <div class="testimonials-grid">
+      {% for t in testimonials %}
+        <div class="testimonial-card">
+          <div>
+            <div class="rating-stars">
+              {% for i in range(t.rating) %}★{% endfor %}
+            </div>
+            <p style="font-style: italic; font-size: 0.95rem;">"{{ t.review }}"</p>
+          </div>
+          <div class="user-profile-sm">
+            <div class="avatar">{{ t.full_name[:1] }}</div>
+            <div>
+              <h5 style="font-size: 0.95rem;">{{ t.full_name }}</h5>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">{{ t.service_name }} • Serviced by {{ t.mechanic_name or 'AutoCare Specialist' }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="section" style="background-color: var(--bg-surface);">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-info-card">
+        <h3>Contact AutoCare</h3>
+        <p>Have a question or custom repair requirement? Speak directly with our master technicians or schedule an emergency inspection.</p>
+
+        <ul class="contact-list">
+          <li class="contact-list-item">
+            <div class="contact-list-icon">📍</div>
+            <div>
+              <strong>Service Center Address</strong>
+              <p style="color: #cbd5e1; font-size: 0.85rem;">742 Evergreen Bay, Suite 100, Tech City</p>
+            </div>
+          </li>
+          <li class="contact-list-item">
+            <div class="contact-list-icon">📞</div>
+            <div>
+              <strong>Service Hotline</strong>
+              <p style="color: #cbd5e1; font-size: 0.85rem;">+1 (800) 555-AUTO / (555) 019-2834</p>
+            </div>
+          </li>
+          <li class="contact-list-item">
+            <div class="contact-list-icon">✉️</div>
+            <div>
+              <strong>Direct Support Email</strong>
+              <p style="color: #cbd5e1; font-size: 0.85rem;">service@autocare.com</p>
+            </div>
+          </li>
+          <li class="contact-list-item">
+            <div class="contact-list-icon">⏰</div>
+            <div>
+              <strong>Workshop Hours</strong>
+              <p style="color: #cbd5e1; font-size: 0.85rem;">Monday - Saturday: 7:30 AM - 7:00 PM</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 2.5rem;">
+        <h3 style="margin-bottom: 0.5rem;">Send Us an Inquiry</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">Fill out the form below and our service team will respond within 2 business hours.</p>
+
+        <form action="{{ url_for('public_contact') }}" method="POST">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="contact-name">Your Name *</label>
+              <input type="text" id="contact-name" name="name" class="form-control" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="contact-email">Email Address *</label>
+              <input type="email" id="contact-email" name="email" class="form-control" placeholder="john@example.com" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="contact-phone">Phone Number</label>
+              <input type="tel" id="contact-phone" name="phone" class="form-control" placeholder="+1 (555) 000-0000">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="contact-subject">Inquiry Subject</label>
+              <input type="text" id="contact-subject" name="subject" class="form-control" placeholder="Service estimate / questions">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="contact-message">Message *</label>
+            <textarea id="contact-message" name="message" class="form-control" rows="4" placeholder="How can our service team assist you today?" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openServiceModal(id, title, category, desc, price, duration) {
+  document.getElementById('modal-service-category').textContent = category;
+  document.getElementById('modal-service-title').textContent = title;
+  document.getElementById('modal-service-desc').textContent = desc;
+  document.getElementById('modal-service-price').textContent = `$${price}`;
+  document.getElementById('modal-service-duration').textContent = duration;
+
+  const bookBtn = document.getElementById('modal-service-book-btn');
+  if (bookBtn) {
+    {% if current_user %}
+      bookBtn.href = "{{ url_for('book_service') }}?service_id=" + id;
+    {% else %}
+      bookBtn.href = "{{ url_for('login') }}?next=" + encodeURIComponent("{{ url_for('book_service') }}?service_id=" + id);
+    {% endif %}
+  }
+
+  openModal('service-details-modal');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}Book Vehicle Service - AutoCare{% endblock %}
+{% block page_title %}Service Booking Wizard{% endblock %}
+{% block breadcrumb %}Book Service{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="wizard-container">
+  <!-- 7-Step Navigation Bar -->
+  <div class="wizard-steps-nav">
+    <div class="wizard-step-item active" onclick="goToStep(1)">
+      <div class="wizard-step-badge">1</div>
+      <span>Vehicle</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(2)">
+      <div class="wizard-step-badge">2</div>
+      <span>Service</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(3)">
+      <div class="wizard-step-badge">3</div>
+      <span>Date</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(4)">
+      <div class="wizard-step-badge">4</div>
+      <span>Time Slot</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(5)">
+      <div class="wizard-step-badge">5</div>
+      <span>Details</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(6)">
+      <div class="wizard-step-badge">6</div>
+      <span>Review</span>
+    </div>
+    <div class="wizard-step-item" onclick="goToStep(7)">
+      <div class="wizard-step-badge">7</div>
+      <span>Confirm</span>
+    </div>
+  </div>
+
+
+  <form id="booking-wizard-form" action="{{ url_for('submit_booking') }}" method="POST">
+    <!-- Hidden Form Fields -->
+    <input type="hidden" id="hidden-vehicle-id" name="vehicle_id" value="{{ preselect_vehicle or '' }}">
+    <input type="hidden" id="hidden-service-id" name="service_id" value="{{ preselect_service or '' }}">
+    <input type="hidden" id="hidden-time-slot" name="time_slot" value="">
+
+    <div class="wizard-body">
+
+      <!-- STEP 1: Select Vehicle -->
+      <div class="wizard-step-content active" id="step-1">
+        <h3>Step 1: Choose Your Vehicle</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Select which vehicle you would like serviced today.</p>
+
+        {% if vehicles %}
+          <div class="selectable-card-grid">
+            {% for v in vehicles %}
+              <div class="selectable-card vehicle-card-item {% if preselect_vehicle and preselect_vehicle|int == v.id %}selected{% endif %}"
+                   onclick="selectVehicleCard(this, '{{ v.id }}', '{{ v.brand }} {{ v.model }} ({{ v.vehicle_number }})')">
+                <input type="radio" name="veh_select_radio" class="selectable-card-radio" {% if preselect_vehicle and preselect_vehicle|int == v.id %}checked{% endif %}>
+                <span class="badge badge-neutral" style="margin-bottom: 0.5rem;">{{ v.vehicle_type }} • {{ v.fuel_type }}</span>
+                <h4 style="margin-bottom: 0.25rem;">{{ v.brand }} {{ v.model }}</h4>
+                <div style="font-family: monospace; font-size: 0.9rem; font-weight: 700; color: var(--primary);">{{ v.vehicle_number }}</div>
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">Odometer: {{ "{:,}".format(v.current_mileage) }} km</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="card empty-state" style="padding: 2.5rem 1.5rem;">
+            <div class="empty-state-icon">🚘</div>
+            <h4>You haven't added any vehicles yet</h4>
+            <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Please register a vehicle before proceeding with service booking.</p>
+            <a href="{{ url_for('customer_vehicles') }}" class="btn btn-primary btn-sm">Add Vehicle in Garage</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- STEP 2: Select Service -->
+      <div class="wizard-step-content" id="step-2">
+        <h3>Step 2: Choose Service Package</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Pick from our certified maintenance and diagnostic packages.</p>
+
+        <div class="selectable-card-grid">
+          {% for s in services %}
+            <div class="selectable-card service-card-item {% if preselect_service and preselect_service|int == s.id %}selected{% endif %}"
+                 onclick="selectServiceCard(this, '{{ s.id }}', '{{ s.service_name|escape }}', '{{ s.estimated_price }}')">
+              <input type="radio" name="srv_select_radio" class="selectable-card-radio" {% if preselect_service and preselect_service|int == s.id %}checked{% endif %}>
+              <span class="badge badge-primary" style="margin-bottom: 0.5rem;">{{ s.category }}</span>
+              <h4 style="margin-bottom: 0.35rem;">{{ s.service_name }}</h4>
+              <p style="font-size: 0.825rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">{{ s.description[:85] }}...</p>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                <strong style="color: var(--primary); font-size: 1.2rem;">${{ "%.2f"|format(s.estimated_price) }}</strong>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">⏱️ {{ s.estimated_duration }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- STEP 3: Select Date -->
+      <div class="wizard-step-content" id="step-3">
+        <h3>Step 3: Select Appointment Date</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Select your preferred service date (Sundays closed for regular maintenance).</p>
+
+        <div style="max-width: 420px;">
+          <div class="form-group">
+            <label class="form-label" for="booking-date-input">Service Appointment Date *</label>
+            <input type="date" id="booking-date-input" name="appointment_date" class="form-control" min="{{ today_date }}" value="{{ today_date }}" required>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">
+            ℹ️ Appointments booked after 4:00 PM are queued for earliest morning check-in on the selected date.
+          </p>
+        </div>
+      </div>
+
+      <!-- STEP 4: Select Time Slot -->
+      <div class="wizard-step-content" id="step-4">
+        <h3>Step 4: Select Convenient Time Slot</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Select a workshop drop-off and inspection window.</p>
+
+        <div class="slot-grid">
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '08:00 AM - 09:30 AM')">08:00 AM - 09:30 AM</button>
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '09:30 AM - 11:00 AM')">09:30 AM - 11:00 AM</button>
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '11:00 AM - 12:30 PM')">11:00 AM - 12:30 PM</button>
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '01:30 PM - 03:00 PM')">01:30 PM - 03:00 PM</button>
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '03:00 PM - 04:30 PM')">03:00 PM - 04:30 PM</button>
+          <button type="button" class="slot-btn" onclick="selectTimeSlot(this, '04:30 PM - 06:00 PM')">04:30 PM - 06:00 PM</button>
+        </div>
+      </div>
+
+      <!-- STEP 5: Problem Description & Notes -->
+      <div class="wizard-step-content" id="step-5">
+        <h3>Step 5: Symptoms or Custom Instructions</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Help our technicians understand specific symptoms, sounds, or requests.</p>
+
+        <div class="form-group">
+          <label class="form-label" for="booking-notes-input">Problem Description / Notes for Technician</label>
+          <textarea id="booking-notes-input" name="problem_description" class="form-control" rows="5" placeholder="e.g. Unusual squeak when braking, steering vibration over 60 mph, routine 20,000 km oil and filter change..."></textarea>
+        </div>
+      </div>
+
+      <!-- STEP 6: Review Booking -->
+      <div class="wizard-step-content" id="step-6">
+        <h3>Step 6: Review Your Booking Details</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please review your appointment summary before final confirmation.</p>
+
+        <div style="background: var(--bg-muted); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Vehicle Selected</span>
+              <h4 id="review-vehicle-text">-</h4>
+            </div>
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Service Package</span>
+              <h4 id="review-service-text">-</h4>
+            </div>
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Scheduled Date</span>
+              <h4 id="review-date-text">-</h4>
+            </div>
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Arrival Window</span>
+              <h4 id="review-time-text">-</h4>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Notes Provided</span>
+            <p id="review-notes-text" style="font-size: 0.9rem; margin-top: 0.25rem; font-style: italic; color: var(--text-secondary);"></p>
+          </div>
+        </div>
+
+        <div class="card" style="max-width: 400px; margin-left: auto;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem;">
+            <span>Package Estimate:</span>
+            <strong id="review-price-text">$0.00</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem;">
+            <span>Estimated Taxes (10%):</span>
+            <strong id="review-tax-text">$0.00</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem; font-size: 1.25rem;">
+            <span>Total Estimated:</span>
+            <strong id="review-total-text" style="color: var(--primary);">$0.00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 7: Final Confirmation -->
+      <div class="wizard-step-content" id="step-7">
+        <div style="text-align: center; max-width: 540px; margin: 0 auto;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+          <h3>Ready to Schedule Appointment</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Click <strong>Confirm & Book Appointment</strong> to reserve your service bay. Your appointment code will be generated immediately.
+          </p>
+
+          <div id="step7-summary"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Wizard Footer Buttons -->
+    <div class="wizard-footer">
+      <button type="button" id="wizard-prev-btn" class="btn btn-secondary" onclick="prevWizardStep()" style="display: none;">
+        &larr; Back
+      </button>
+      <div style="margin-left: auto; display: flex; gap: 0.75rem;">
+        <button type="button" id="wizard-next-btn" class="btn btn-primary" onclick="nextWizardStep()">
+          Next Step &rarr;
+        </button>
+        <button type="submit" id="wizard-confirm-btn" class="btn btn-success" style="display: none;">
+          ✓ Confirm & Book Appointment
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Preselect vehicle if provided
+  const preVeh = document.querySelector('.vehicle-card-item.selected');
+  if (preVeh) {
+    bookingData.vehicleId = "{{ preselect_vehicle }}";
+    bookingData.vehicleText = preVeh.querySelector('h4').textContent + " (" + preVeh.querySelector('div').textContent + ")";
+  }
+  // Preselect service if provided
+  const preSrv = document.querySelector('.service-card-item.selected');
+  if (preSrv) {
+    bookingData.serviceId = "{{ preselect_service }}";
+    bookingData.serviceName = preSrv.querySelector('h4').textContent;
+    bookingData.servicePrice = parseFloat(preSrv.querySelector('strong').textContent.replace('$', ''));
+  }
+});
+</script>
+{% endblock %}

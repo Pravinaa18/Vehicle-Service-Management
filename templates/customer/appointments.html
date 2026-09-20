@@ -1,0 +1,232 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}My Appointments - AutoCare{% endblock %}
+{% block page_title %}Service Appointments{% endblock %}
+{% block breadcrumb %}Appointments{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Appointment Management</h2>
+    <p style="color: var(--text-secondary);">Track status, reschedule or manage your vehicle maintenance bookings</p>
+  </div>
+  <a href="{{ url_for('book_service') }}" class="btn btn-primary">
+    <span>+</span> New Service Booking
+  </a>
+</div>
+
+<!-- Filter Tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; overflow-x: auto;">
+  <a href="{{ url_for('customer_appointments', status='all') }}" class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+    All Appointments
+  </a>
+  <a href="{{ url_for('customer_appointments', status='active') }}" class="btn btn-sm {% if current_filter == 'active' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Active & In Workshop
+  </a>
+  <a href="{{ url_for('customer_appointments', status='completed') }}" class="btn btn-sm {% if current_filter == 'completed' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Completed
+  </a>
+  <a href="{{ url_for('customer_appointments', status='cancelled') }}" class="btn btn-sm {% if current_filter == 'cancelled' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Cancelled
+  </a>
+</div>
+
+<!-- Appointments Table Card -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="table-header-title">Booking Records</h3>
+      <span class="badge badge-neutral">{{ appointments|length }} found</span>
+    </div>
+    <input type="text" id="appointment-search-input" class="table-search-input" placeholder="Search by ID, car, service..." oninput="filterTable('appointment-search-input', 'customer-appointments-table')">
+  </div>
+
+  <div class="table-responsive">
+    <table id="customer-appointments-table" class="data-table">
+      <thead>
+        <tr>
+          <th>Appointment Code</th>
+          <th>Vehicle</th>
+          <th>Service Package</th>
+          <th>Scheduled Date & Time</th>
+          <th>Assigned Mechanic</th>
+          <th>Status</th>
+          <th>Estimated Cost</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if appointments %}
+          {% for apt in appointments %}
+            <tr>
+              <td>
+                <a href="{{ url_for('tracking_detail', appointment_id=apt.id) }}" style="font-family: monospace; font-weight: 700; color: var(--primary);">
+                  {{ apt.appointment_code }}
+                </a>
+              </td>
+              <td>
+                <strong>{{ apt.brand }} {{ apt.model }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.vehicle_number }}</div>
+              </td>
+              <td>
+                <div>{{ apt.service_name }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">⏱️ {{ apt.estimated_duration }}</div>
+              </td>
+              <td>
+                <div><strong>{{ apt.appointment_date }}</strong></div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ apt.time_slot }}</div>
+              </td>
+              <td>
+                {% if apt.mechanic_name %}
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span>👨‍🔧</span>
+                    <div>
+                      <div style="font-weight: 600; font-size: 0.85rem;">{{ apt.mechanic_name }}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.mechanic_phone }}</div>
+                    </div>
+                  </div>
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">Pending Dispatch</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if apt.status == 'Completed' %}
+                  <span class="badge badge-success">✓ Completed</span>
+                {% elif apt.status == 'In Service' %}
+                  <span class="badge badge-primary">⚙️ In Service</span>
+                {% elif apt.status == 'Ready for Pickup' %}
+                  <span class="badge badge-success">✨ Ready for Pickup</span>
+                {% elif apt.status == 'Cancelled' %}
+                  <span class="badge badge-danger">✕ Cancelled</span>
+                {% elif apt.status in ('Confirmed', 'Assigned', 'Vehicle Received', 'Inspection', 'Quality Check') %}
+                  <span class="badge badge-info">{{ apt.status }}</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ apt.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <strong>${{ "%.2f"|format(apt.total_amount) }}</strong>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                  <a href="{{ url_for('tracking_detail', appointment_id=apt.id) }}" class="btn btn-primary btn-sm" title="Live Service Tracker">
+                    Track
+                  </a>
+
+                  {% if apt.status not in ('In Service', 'Quality Check', 'Ready for Pickup', 'Completed', 'Cancelled') %}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openRescheduleModal({{ apt.id }}, '{{ apt.appointment_code }}', '{{ apt.appointment_date }}', '{{ apt.time_slot }}')" title="Reschedule Date & Time">
+                      Reschedule
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmCancelAppointment({{ apt.id }}, '{{ apt.appointment_code }}')" title="Cancel Appointment">
+                      Cancel
+                    </button>
+                  {% endif %}
+
+                  {% if apt.status == 'Completed' and not apt.feedback_id %}
+                    <a href="{{ url_for('submit_feedback', appointment_id=apt.id) }}" class="btn btn-outline-primary btn-sm" title="Rate Service">
+                      Review
+                    </a>
+                  {% endif %}
+
+                  {% if apt.invoice_id %}
+                    <a href="{{ url_for('invoice_detail', invoice_id=apt.invoice_id) }}" class="btn btn-secondary btn-sm" title="View Digital Invoice">
+                      Invoice
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 3.5rem; color: var(--text-muted);">
+              No appointments found matching this filter. <a href="{{ url_for('book_service') }}">Book a service now</a>.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div id="reschedule-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Reschedule Appointment <span id="resched-code-badge" style="color: var(--primary);"></span></h4>
+      <button type="button" class="modal-close" onclick="closeModal('reschedule-modal')">&times;</button>
+    </div>
+    <form id="reschedule-form" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="resched-date">Select New Date *</label>
+          <input type="date" id="resched-date" name="new_date" class="form-control" min="{{ current_year }}-01-01" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="resched-slot">Select Preferred Window *</label>
+          <select id="resched-slot" name="new_time_slot" class="form-select" required>
+            <option value="08:00 AM - 09:30 AM">08:00 AM - 09:30 AM</option>
+            <option value="09:30 AM - 11:00 AM">09:30 AM - 11:00 AM</option>
+            <option value="11:00 AM - 12:30 PM">11:00 AM - 12:30 PM</option>
+            <option value="01:30 PM - 03:00 PM">01:30 PM - 03:00 PM</option>
+            <option value="03:00 PM - 04:30 PM">03:00 PM - 04:30 PM</option>
+            <option value="04:30 PM - 06:00 PM">04:30 PM - 06:00 PM</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('reschedule-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save New Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Cancel Appointment Dialog Form Modal -->
+<div id="cancel-apt-modal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-header">
+      <h4 class="modal-title">Cancel Appointment</h4>
+      <button type="button" class="modal-close" onclick="closeModal('cancel-apt-modal')">&times;</button>
+    </div>
+    <form id="cancel-apt-form" method="POST">
+      <div class="modal-body">
+        <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Are you sure you want to cancel appointment <strong id="cancel-code-label"></strong>?
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="cancel-reason">Cancellation Reason (Optional)</label>
+          <textarea id="cancel-reason" name="cancellation_reason" class="form-control" rows="3" placeholder="Change of plans, vehicle sold, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('cancel-apt-modal')">Keep Appointment</button>
+        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openRescheduleModal(id, code, currentDate, currentSlot) {
+  document.getElementById('reschedule-form').action = "/appointments/" + id + "/reschedule";
+  document.getElementById('resched-code-badge').textContent = code;
+  const dateInput = document.getElementById('resched-date');
+  dateInput.value = currentDate;
+  dateInput.min = new Date().toISOString().split('T')[0];
+  document.getElementById('resched-slot').value = currentSlot;
+  openModal('reschedule-modal');
+}
+
+function confirmCancelAppointment(id, code) {
+  document.getElementById('cancel-apt-form').action = "/appointments/" + id + "/cancel";
+  document.getElementById('cancel-code-label').textContent = code;
+  openModal('cancel-apt-modal');
+}
+</script>
+{% endblock %}

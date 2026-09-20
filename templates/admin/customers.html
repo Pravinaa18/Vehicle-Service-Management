@@ -1,0 +1,126 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Manage Customers - AutoCare Admin{% endblock %}
+{% block page_title %}Customer Directory{% endblock %}
+{% block breadcrumb %}Customers{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Registered Customer Accounts</h2>
+    <p style="color: var(--text-secondary);">Manage customer directory, view registered fleets, and control account statuses</p>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="table-header-title">Customer List</h3>
+      <span class="badge badge-neutral">{{ customers|length }} clients</span>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin_customers') }}" style="display: flex; gap: 0.5rem;">
+      <input type="text" name="q" class="table-search-input" placeholder="Search by name, email, phone..." value="{{ search_q }}">
+      <select name="status" class="form-select" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+        <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Status</option>
+        <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active Only</option>
+        <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive Only</option>
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      {% if search_q or current_status != 'all' %}
+        <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary btn-sm">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Customer Name</th>
+          <th>Contact Details</th>
+          <th>Registered Vehicles</th>
+          <th>Lifetime Bookings</th>
+          <th>Total Revenue Spent</th>
+          <th>Account Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if customers %}
+          {% for c in customers %}
+            <tr>
+              <td>
+                <a href="{{ url_for('admin_customer_detail', user_id=c.id) }}" style="font-weight: 700;">
+                  {{ c.full_name }}
+                </a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Joined {{ c.created_at[:10] }}</div>
+              </td>
+              <td>
+                <div>{{ c.email }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ c.phone }}</div>
+              </td>
+              <td>
+                <strong>{{ c.vehicle_count }}</strong> vehicles
+              </td>
+              <td>
+                <strong>{{ c.appointment_count }}</strong> services
+              </td>
+              <td>
+                <strong style="color: var(--success);">${{ "%.2f"|format(c.total_spend) }}</strong>
+              </td>
+              <td>
+                {% if c.status == 'active' %}
+                  <span class="badge badge-success">Active</span>
+                {% else %}
+                  <span class="badge badge-danger">Deactivated</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <a href="{{ url_for('admin_customer_detail', user_id=c.id) }}" class="btn btn-secondary btn-sm">
+                    Profile
+                  </a>
+                  <button type="button" class="btn btn-sm {% if c.status == 'active' %}btn-danger{% else %}btn-success{% endif %}" onclick="confirmToggleCustomer({{ c.id }}, '{{ c.full_name|escape }}', '{{ c.status }}')">
+                    {% if c.status == 'active' %}Deactivate{% else %}Activate{% endif %}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No customers found.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Hidden Toggle Form -->
+<form id="toggle-customer-form" method="POST" style="display: none;"></form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmToggleCustomer(id, name, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'Deactivate' : 'Activate';
+  showConfirmDialog({
+    title: `${newStatus} Customer Account`,
+    message: `Are you sure you want to ${newStatus.toLowerCase()} the account for ${name}?`,
+    confirmText: `Yes, ${newStatus}`,
+    confirmBtnClass: currentStatus === 'active' ? 'btn-danger' : 'btn-success',
+    onConfirm: () => {
+      const form = document.getElementById('toggle-customer-form');
+      form.action = "/admin/customers/" + id + "/toggle";
+      form.submit();
+    }
+  });
+}
+</script>
+{% endblock %}

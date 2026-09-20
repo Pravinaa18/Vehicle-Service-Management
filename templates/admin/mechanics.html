@@ -1,0 +1,225 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Mechanics Roster - AutoCare Admin{% endblock %}
+{% block page_title %}Certified Technicians & Mechanics{% endblock %}
+{% block breadcrumb %}Mechanics{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Workshop Mechanics Roster</h2>
+    <p style="color: var(--text-secondary);">Manage technician assignments, track availability, ratings, and bay specializations</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openModal('add-mechanic-modal')">
+    <span>+</span> Add New Technician
+  </button>
+</div>
+
+<!-- Mechanics Cards Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  {% for m in mechanics %}
+    <div class="card" style="display: flex; flex-direction: column;">
+      <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem;">
+        <div class="avatar" style="width: 52px; height: 52px; font-size: 1.35rem; background: var(--primary-light); color: var(--primary);">
+          👨‍🔧
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 1.2rem; margin-bottom: 0.2rem;">{{ m.name }}</h3>
+          <p style="font-size: 0.825rem; color: var(--primary); font-weight: 600;">{{ m.specialization }}</p>
+        </div>
+        <div>
+          {% if m.availability == 'available' %}
+            <span class="badge badge-success">Available</span>
+          {% elif m.availability == 'on_job' %}
+            <span class="badge badge-primary">On Bay Job</span>
+          {% else %}
+            <span class="badge badge-neutral">On Leave</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">Experience</span>
+          <div style="font-weight: 600;">{{ m.experience_years }} Years</div>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">Average Rating</span>
+          <div style="font-weight: 600; color: #f59e0b;">⭐ {{ m.avg_rating or '5.0' }} / 5.0</div>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">Active Jobs</span>
+          <div style="font-weight: 600;">{{ m.active_jobs }} in bay</div>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">Completed Repairs</span>
+          <div style="font-weight: 600;">{{ m.completed_jobs }} jobs</div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+        <div>📞 {{ m.phone }}</div>
+        <div>✉️ {{ m.email }}</div>
+      </div>
+
+      <div style="margin-top: auto; display: flex; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <button type="button" class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openEditMechanicModal({{ m.id }}, '{{ m.name|escape }}', '{{ m.email|escape }}', '{{ m.phone|escape }}', '{{ m.specialization|escape }}', {{ m.experience_years }}, '{{ m.availability }}', '{{ m.status }}')">
+          Edit
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteMechanic({{ m.id }}, '{{ m.name|escape }}')">
+          Delete
+        </button>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Add Mechanic Modal -->
+<div id="add-mechanic-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Register Certified Mechanic</h4>
+      <button type="button" class="modal-close" onclick="closeModal('add-mechanic-modal')">&times;</button>
+    </div>
+    <form action="{{ url_for('admin_add_mechanic') }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="mech-name">Full Name *</label>
+          <input type="text" id="mech-name" name="name" class="form-control" placeholder="e.g. Marcus Brody" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="mech-email">Staff Email *</label>
+            <input type="email" id="mech-email" name="email" class="form-control" placeholder="marcus@autocare.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mech-phone">Contact Phone *</label>
+            <input type="tel" id="mech-phone" name="phone" class="form-control" placeholder="+1 (555) 000-0000" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="mech-spec">Master Specialization *</label>
+          <input type="text" id="mech-spec" name="specialization" class="form-control" placeholder="e.g. Engine & Transmission, Brake Systems, EV & Diagnostics" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="mech-exp">Experience (Years) *</label>
+            <input type="number" id="mech-exp" name="experience_years" class="form-control" min="1" max="50" value="5" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mech-avail">Current Availability</label>
+            <select id="mech-avail" name="availability" class="form-select">
+              <option value="available">Available for Bay Assignment</option>
+              <option value="on_job">On Job / Bay Busy</option>
+              <option value="leave">On Leave</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-mechanic-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Technician</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Mechanic Modal -->
+<div id="edit-mechanic-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Edit Mechanic Profile</h4>
+      <button type="button" class="modal-close" onclick="closeModal('edit-mechanic-modal')">&times;</button>
+    </div>
+    <form id="edit-mechanic-form" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="edit-mech-name">Full Name</label>
+          <input type="text" id="edit-mech-name" name="name" class="form-control" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-mech-email">Staff Email</label>
+            <input type="email" id="edit-mech-email" name="email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-mech-phone">Phone</label>
+            <input type="tel" id="edit-mech-phone" name="phone" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-mech-spec">Specialization</label>
+          <input type="text" id="edit-mech-spec" name="specialization" class="form-control" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-mech-exp">Experience (Years)</label>
+            <input type="number" id="edit-mech-exp" name="experience_years" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-mech-avail">Availability</label>
+            <select id="edit-mech-avail" name="availability" class="form-select">
+              <option value="available">Available</option>
+              <option value="on_job">On Job</option>
+              <option value="leave">On Leave</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-mech-status">Account Status</label>
+          <select id="edit-mech-status" name="status" class="form-select">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('edit-mechanic-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Hidden Delete Form -->
+<form id="delete-mechanic-form" method="POST" style="display: none;"></form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditMechanicModal(id, name, email, phone, spec, exp, avail, status) {
+  document.getElementById('edit-mechanic-form').action = "/admin/mechanics/edit/" + id;
+  document.getElementById('edit-mech-name').value = name;
+  document.getElementById('edit-mech-email').value = email;
+  document.getElementById('edit-mech-phone').value = phone;
+  document.getElementById('edit-mech-spec').value = spec;
+  document.getElementById('edit-mech-exp').value = exp;
+  document.getElementById('edit-mech-avail').value = avail;
+  document.getElementById('edit-mech-status').value = status;
+  openModal('edit-mechanic-modal');
+}
+
+function confirmDeleteMechanic(id, name) {
+  showConfirmDialog({
+    title: 'Remove Mechanic',
+    message: `Are you sure you want to remove ${name} from the technician roster?`,
+    confirmText: 'Yes, Remove',
+    confirmBtnClass: 'btn-danger',
+    onConfirm: () => {
+      const form = document.getElementById('delete-mechanic-form');
+      form.action = "/admin/mechanics/delete/" + id;
+      form.submit();
+    }
+  });
+}
+</script>
+{% endblock %}

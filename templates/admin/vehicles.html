@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Vehicle Fleet Registry - AutoCare Admin{% endblock %}
+{% block page_title %}Master Vehicle Fleet Registry{% endblock %}
+{% block breadcrumb %}Vehicles{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Registered Vehicle Fleet</h2>
+    <p style="color: var(--text-secondary);">Master list of all customer vehicles serviced across our facilities</p>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="table-header-title">Fleet Directory</h3>
+      <span class="badge badge-neutral">{{ vehicles|length }} vehicles</span>
+    </div>
+
+    <form method="GET" action="{{ url_for('admin_vehicles') }}" style="display: flex; gap: 0.5rem;">
+      <input type="text" name="q" class="table-search-input" placeholder="Search plate, make, owner..." value="{{ search_q }}">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_q %}
+        <a href="{{ url_for('admin_vehicles') }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Registration #</th>
+          <th>Make & Model</th>
+          <th>Year</th>
+          <th>Fuel / Type</th>
+          <th>Current Odometer</th>
+          <th>Owner Name</th>
+          <th>Owner Contact</th>
+          <th>Services</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if vehicles %}
+          {% for v in vehicles %}
+            <tr>
+              <td>
+                <strong style="font-family: monospace; color: var(--primary); font-size: 0.95rem;">
+                  {{ v.vehicle_number }}
+                </strong>
+              </td>
+              <td><strong>{{ v.brand }} {{ v.model }}</strong></td>
+              <td>{{ v.year }}</td>
+              <td>
+                <span class="badge badge-neutral">{{ v.fuel_type }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">{{ v.vehicle_type }}</span>
+              </td>
+              <td>{{ "{:,}".format(v.current_mileage) }} km</td>
+              <td>
+                <a href="{{ url_for('admin_customer_detail', user_id=v.user_id) }}" style="font-weight: 600;">
+                  {{ v.owner_name }}
+                </a>
+              </td>
+              <td>
+                <div>{{ v.owner_email }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ v.owner_phone }}</div>
+              </td>
+              <td>
+                <span class="badge badge-primary">{{ v.service_count }} jobs</span>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No vehicles found matching the search.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

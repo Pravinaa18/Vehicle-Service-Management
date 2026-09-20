@@ -1,0 +1,126 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}Service History - AutoCare{% endblock %}
+{% block page_title %}Digital Service History{% endblock %}
+{% block breadcrumb %}Service History{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Lifetime Vehicle Service Log</h2>
+    <p style="color: var(--text-secondary);">Access permanent digital records, parts replaced, and maintenance invoices</p>
+  </div>
+  <a href="{{ url_for('book_service') }}" class="btn btn-primary">
+    <span>+</span> Schedule Maintenance
+  </a>
+</div>
+
+<!-- Search & Vehicle Filter Controls -->
+<div class="card" style="margin-bottom: 2rem; padding: 1.25rem;">
+  <form method="GET" action="{{ url_for('service_history') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 2; min-width: 240px;">
+      <label class="form-label" for="history-search">Search Records</label>
+      <input type="text" id="history-search" name="q" class="form-control" placeholder="Search by service name, license plate..." value="{{ search_q }}">
+    </div>
+
+    <div style="flex: 1; min-width: 180px;">
+      <label class="form-label" for="history-veh-filter">Filter by Vehicle</label>
+      <select id="history-veh-filter" name="vehicle_id" class="form-select">
+        <option value="">All Registered Vehicles</option>
+        {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if current_vehicle|string == v.id|string %}selected{% endif %}>
+            {{ v.brand }} {{ v.model }} ({{ v.vehicle_number }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary">
+        <span>🔍</span> Filter Records
+      </button>
+      {% if search_q or current_vehicle %}
+        <a href="{{ url_for('service_history') }}" class="btn btn-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- History Table -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <h3 class="table-header-title">Completed Maintenance Records</h3>
+    <span class="badge badge-neutral">{{ records|length }} records found</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service Date</th>
+          <th>Vehicle</th>
+          <th>Service Package</th>
+          <th>Master Mechanic</th>
+          <th>Parts & Components Replaced</th>
+          <th>Total Cost</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if records %}
+          {% for r in records %}
+            <tr>
+              <td><strong>{{ r.appointment_date }}</strong></td>
+              <td>
+                <a href="{{ url_for('vehicle_detail', vehicle_id=r.vehicle_id) }}" style="font-weight: 600;">
+                  {{ r.brand }} {{ r.model }}
+                </a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ r.vehicle_number }}</div>
+              </td>
+              <td>
+                <span class="badge badge-primary" style="margin-bottom: 0.2rem;">{{ r.service_name }}</span>
+              </td>
+              <td>{{ r.mechanic_name or 'AutoCare Master Tech' }}</td>
+              <td style="max-width: 280px; font-size: 0.85rem; color: var(--text-secondary);">
+                {{ r.parts_replaced or 'Standard parts inspection & fluid service' }}
+              </td>
+              <td>
+                <strong>${{ "%.2f"|format(r.record_cost or r.total_amount) }}</strong>
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <a href="{{ url_for('tracking_detail', appointment_id=r.id) }}" class="btn btn-secondary btn-sm" title="Service Report">
+                    Report
+                  </a>
+                  {% if r.invoice_id %}
+                    <a href="{{ url_for('invoice_detail', invoice_id=r.invoice_id) }}" class="btn btn-outline-primary btn-sm" title="View Digital Invoice">
+                      Invoice
+                    </a>
+                  {% endif %}
+                  {% if not r.feedback_id %}
+                    <a href="{{ url_for('submit_feedback', appointment_id=r.id) }}" class="btn btn-sm btn-outline-primary" title="Submit Review">
+                      ⭐ Review
+                    </a>
+                  {% else %}
+                    <span title="Rated {{ r.feedback_rating }} Stars" style="font-size: 0.85rem; color: #f59e0b; align-self: center;">
+                      {% for i in range(r.feedback_rating or 5) %}★{% endfor %}
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No service records match your criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

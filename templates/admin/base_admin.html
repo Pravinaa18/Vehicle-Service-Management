@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<!-- Chart.js for High Performance Admin Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block page_body %}
+<div class="dashboard-layout">
+  <!-- Admin Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="{{ url_for('admin_dashboard') }}" class="brand-logo">
+        <div class="brand-icon" style="background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);">🛡️</div>
+        <span>AutoCare <span style="font-size: 0.75rem; color: var(--danger); font-weight: 800;">ADMIN</span></span>
+      </a>
+      <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()" style="display: none;">&times;</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Operations Control</span>
+      <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+        <span class="sidebar-link-icon">📈</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('admin_appointments') }}" class="sidebar-link {% if request.endpoint == 'admin_appointments' %}active{% endif %}">
+        <span class="sidebar-link-icon">📅</span>
+        <span>Appointments</span>
+      </a>
+      <a href="{{ url_for('admin_customers') }}" class="sidebar-link {% if request.endpoint in ('admin_customers', 'admin_customer_detail') %}active{% endif %}">
+        <span class="sidebar-link-icon">👥</span>
+        <span>Customers</span>
+      </a>
+      <a href="{{ url_for('admin_vehicles') }}" class="sidebar-link {% if request.endpoint == 'admin_vehicles' %}active{% endif %}">
+        <span class="sidebar-link-icon">🚘</span>
+        <span>Vehicle Registry</span>
+      </a>
+      <a href="{{ url_for('admin_mechanics') }}" class="sidebar-link {% if request.endpoint == 'admin_mechanics' %}active{% endif %}">
+        <span class="sidebar-link-icon">👨‍🔧</span>
+        <span>Mechanics Roster</span>
+      </a>
+      <a href="{{ url_for('admin_services') }}" class="sidebar-link {% if request.endpoint == 'admin_services' %}active{% endif %}">
+        <span class="sidebar-link-icon">⚙️</span>
+        <span>Service Catalog</span>
+      </a>
+
+      <span class="sidebar-section-label" style="margin-top: 1rem;">Finance & Insights</span>
+      <a href="{{ url_for('admin_invoices') }}" class="sidebar-link {% if request.endpoint == 'admin_invoices' %}active{% endif %}">
+        <span class="sidebar-link-icon">🧾</span>
+        <span>Invoices & Revenue</span>
+      </a>
+      <a href="{{ url_for('admin_feedback') }}" class="sidebar-link {% if request.endpoint == 'admin_feedback' %}active{% endif %}">
+        <span class="sidebar-link-icon">⭐</span>
+        <span>Reviews & Feedback</span>
+      </a>
+      <a href="{{ url_for('admin_reports') }}" class="sidebar-link {% if request.endpoint == 'admin_reports' %}active{% endif %}">
+        <span class="sidebar-link-icon">📊</span>
+        <span>Performance Reports</span>
+      </a>
+
+      <span class="sidebar-section-label" style="margin-top: 1rem;">System</span>
+      <a href="{{ url_for('dashboard') }}" class="sidebar-link" title="Preview Customer View">
+        <span class="sidebar-link-icon">👁️</span>
+        <span>Customer Portal</span>
+      </a>
+      <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: var(--danger);">
+        <span class="sidebar-link-icon">🚪</span>
+        <span>Sign Out</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user-avatar" style="background: #ef4444;">A</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ current_user.full_name }}</div>
+        <div class="sidebar-user-role">Service Director</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Canvas Wrapper -->
+  <div class="main-wrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="topbar-toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        <div class="page-title-box">
+          <h1>{% block page_title %}Admin Control Panel{% endblock %}</h1>
+          <div class="breadcrumbs">
+            <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+            <span>/</span>
+            <span>{% block breadcrumb %}Dashboard{% endblock %}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Live Notifications Dropdown -->
+        <div class="notif-dropdown-wrapper">
+          <button type="button" class="notif-btn" onclick="toggleNotificationDropdown()" title="Notifications">
+            🔔
+            {% if unread_notifs_count > 0 %}
+              <span class="notif-count-badge">{{ unread_notifs_count }}</span>
+            {% endif %}
+          </button>
+
+          <div id="notif-menu" class="notif-menu">
+            <div class="notif-header">
+              <span>Admin Alerts</span>
+              {% if unread_notifs_count > 0 %}
+                <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="markAllNotificationsRead()">Mark all read</button>
+              {% endif %}
+            </div>
+            <ul class="notif-list">
+              {% if recent_notifs %}
+                {% for n in recent_notifs %}
+                  <li class="notif-item {% if not n.is_read %}unread{% endif %}" onclick="markNotificationAsRead({{ n.id }}, '{{ n.link or url_for('admin_appointments') }}')">
+                    <div class="notif-item-icon">
+                      {% if n.type == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+                    </div>
+                    <div style="flex: 1;">
+                      <div class="notif-item-title">{{ n.title }}</div>
+                      <div class="notif-item-msg">{{ n.message }}</div>
+                      <div class="notif-item-time">{{ n.created_at }}</div>
+                    </div>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No alerts</li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+
+        <a href="{{ url_for('admin_appointments') }}" class="btn btn-primary btn-sm">
+          <span>📅</span> Live Workshop Bays
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main class="dashboard-content">
+      {% block admin_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

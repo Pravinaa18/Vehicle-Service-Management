@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Terms & Conditions - AutoCare{% endblock %}
+
+{% block content %}
+<div class="section">
+  <div class="container" style="max-width: 860px;">
+    <div class="card" style="padding: 3rem;">
+      <h1 style="margin-bottom: 1.5rem; font-size: 2.25rem;">Terms & Conditions</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">Last Updated: September 19, 2026</p>
+
+      <div style="color: var(--text-secondary); line-height: 1.8; display: flex; flex-direction: column; gap: 1.5rem;">
+        <p>Welcome to AutoCare. By registering an account or booking a maintenance service, you agree to comply with and be bound by the following terms of service.</p>
+
+        <h3 style="color: var(--text-primary);">1. Service Appointments & Estimations</h3>
+        <p>All service package fees quoted on the AutoCare platform are honest, realistic upfront estimates. Should diagnostic inspections uncover additional safety hazards or required component replacements, written authorization will be requested before supplementary work is executed.</p>
+
+        <h3 style="color: var(--text-primary);">2. Vehicle Check-in & Care</h3>
+        <p>Customers are responsible for removing valuable personal belongings from vehicles prior to drop-off. AutoCare mechanics exercise master craftsmanship and industry-leading care when handling your vehicle in our repair bays.</p>
+
+        <h3 style="color: var(--text-primary);">3. Payments & Digital Invoicing</h3>
+        <p>Invoices are generated upon completion of quality inspections. Invoices can be paid conveniently via verified local methods (Credit/Debit Card, UPI, or Counter Cash) prior to vehicle pickup release.</p>
+
+        <h3 style="color: var(--text-primary);">4. Warranty</h3>
+        <p>All genuine OEM parts installed and repair workmanship are warranted for a minimum of 12 months or 15,000 kilometers from service completion date.</p>
+      </div>
+
+      <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

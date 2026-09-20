@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<div class="dashboard-layout">
+  <!-- Customer Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="{{ url_for('dashboard') }}" class="brand-logo">
+        <div class="brand-icon">🚗</div>
+        <span>AutoCare</span>
+      </a>
+      <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()" style="display: none;">&times;</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Main Menu</span>
+      <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <span class="sidebar-link-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('customer_vehicles') }}" class="sidebar-link {% if request.endpoint in ('customer_vehicles', 'vehicle_detail') %}active{% endif %}">
+        <span class="sidebar-link-icon">🚘</span>
+        <span>My Vehicles</span>
+      </a>
+      <a href="{{ url_for('book_service') }}" class="sidebar-link {% if request.endpoint == 'book_service' %}active{% endif %}">
+        <span class="sidebar-link-icon">📅</span>
+        <span>Book Service</span>
+      </a>
+      <a href="{{ url_for('customer_appointments') }}" class="sidebar-link {% if request.endpoint in ('customer_appointments', 'tracking_detail') %}active{% endif %}">
+        <span class="sidebar-link-icon">⏱️</span>
+        <span>Appointments</span>
+      </a>
+      <a href="{{ url_for('service_history') }}" class="sidebar-link {% if request.endpoint == 'service_history' %}active{% endif %}">
+        <span class="sidebar-link-icon">📑</span>
+        <span>Service History</span>
+      </a>
+
+      <span class="sidebar-section-label" style="margin-top: 1rem;">Billing & Account</span>
+      <a href="{{ url_for('customer_invoices') }}" class="sidebar-link {% if request.endpoint in ('customer_invoices', 'invoice_detail') %}active{% endif %}">
+        <span class="sidebar-link-icon">🧾</span>
+        <span>Invoices</span>
+      </a>
+      <a href="{{ url_for('notifications_view') }}" class="sidebar-link {% if request.endpoint == 'notifications_view' %}active{% endif %}">
+        <span class="sidebar-link-icon">🔔</span>
+        <span>Notifications</span>
+        {% if unread_notifs_count > 0 %}
+          <span class="sidebar-badge">{{ unread_notifs_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('customer_profile') }}" class="sidebar-link {% if request.endpoint == 'customer_profile' %}active{% endif %}">
+        <span class="sidebar-link-icon">👤</span>
+        <span>Profile & Settings</span>
+      </a>
+      <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: var(--danger); margin-top: 0.5rem;">
+        <span class="sidebar-link-icon">🚪</span>
+        <span>Sign Out</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user-avatar">{{ current_user.full_name[:1] }}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ current_user.full_name }}</div>
+        <div class="sidebar-user-role">Customer Account</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Canvas Wrapper -->
+  <div class="main-wrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="topbar-toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        <div class="page-title-box">
+          <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+          <div class="breadcrumbs">
+            <a href="{{ url_for('dashboard') }}">Home</a>
+            <span>/</span>
+            <span>{% block breadcrumb %}Dashboard{% endblock %}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Live Notifications Dropdown -->
+        <div class="notif-dropdown-wrapper">
+          <button type="button" class="notif-btn" onclick="toggleNotificationDropdown()" title="Notifications">
+            🔔
+            {% if unread_notifs_count > 0 %}
+              <span class="notif-count-badge">{{ unread_notifs_count }}</span>
+            {% endif %}
+          </button>
+
+          <div id="notif-menu" class="notif-menu">
+            <div class="notif-header">
+              <span>Notifications</span>
+              {% if unread_notifs_count > 0 %}
+                <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="markAllNotificationsRead()">Mark all read</button>
+              {% endif %}
+            </div>
+            <ul class="notif-list">
+              {% if recent_notifs %}
+                {% for n in recent_notifs %}
+                  <li class="notif-item {% if not n.is_read %}unread{% endif %}" onclick="markNotificationAsRead({{ n.id }}, '{{ n.link or url_for('notifications_view') }}')">
+                    <div class="notif-item-icon">
+                      {% if n.type == 'success' %}✓{% elif n.type == 'warning' %}⚠{% elif n.type == 'status' %}🚗{% else %}ℹ{% endif %}
+                    </div>
+                    <div style="flex: 1;">
+                      <div class="notif-item-title">{{ n.title }}</div>
+                      <div class="notif-item-msg">{{ n.message }}</div>
+                      <div class="notif-item-time">{{ n.created_at }}</div>
+                    </div>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No recent notifications</li>
+              {% endif %}
+            </ul>
+            <div class="notif-footer">
+              <a href="{{ url_for('notifications_view') }}" style="color: var(--primary);">View all notifications &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+
+        <a href="{{ url_for('book_service') }}" class="btn btn-primary btn-sm">
+          <span>+</span> Book Service
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="dashboard-content">
+      {% block dashboard_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

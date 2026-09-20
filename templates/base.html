@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AutoCare - Modern Vehicle Service Management{% endblock %}</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Flash Messages Hook for Toast Injection -->
+  <div style="display: none;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flask-flash-msg" data-category="{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Confirmation Dialog Modal -->
+  <div id="global-confirm-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h4 id="confirm-modal-title" class="modal-title">Confirm Action</h4>
+        <button type="button" class="modal-close" onclick="closeModal('global-confirm-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-message" style="color: var(--text-secondary);"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('global-confirm-modal')">Cancel</button>
+        <button type="button" id="confirm-modal-btn" class="btn btn-danger" onclick="handleConfirmAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  {% block page_body %}
+    <!-- Default Public Navbar -->
+    <header class="public-navbar">
+      <div class="container nav-container">
+        <a href="{{ url_for('index') }}" class="brand-logo">
+          <div class="brand-icon">🚗</div>
+          <span>AutoCare</span>
+        </a>
+
+        <ul id="public-nav-links" class="nav-links">
+          <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a></li>
+          <li><a href="{{ url_for('index') }}#services" class="nav-link">Services</a></li>
+          <li><a href="{{ url_for('index') }}#about" class="nav-link">About</a></li>
+          <li><a href="{{ url_for('index') }}#how-it-works" class="nav-link">How It Works</a></li>
+          <li><a href="{{ url_for('index') }}#testimonials" class="nav-link">Reviews</a></li>
+          <li><a href="{{ url_for('index') }}#contact" class="nav-link">Contact</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+
+          {% if current_user %}
+            {% if current_user.role == 'admin' %}
+              <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-sm">Admin Panel</a>
+            {% else %}
+              <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm">Dashboard</a>
+            {% endif %}
+            <a href="{{ url_for('book_service') }}" class="btn btn-outline-primary btn-sm">Get Service</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">Login</a>
+            <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign Up</a>
+            <a href="{{ url_for('login', next=url_for('book_service')) }}" class="btn btn-outline-primary btn-sm">Get Service</a>
+          {% endif %}
+
+          <button type="button" id="public-mobile-nav-toggle" class="mobile-menu-btn" title="Menu">☰</button>
+        </div>
+      </div>
+    </header>
+
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Public Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="brand-logo" style="margin-bottom: 1rem;">
+              <div class="brand-icon">🚗</div>
+              <span>AutoCare</span>
+            </div>
+            <p style="margin-bottom: 1.5rem; max-width: 320px;">Complete vehicle service and maintenance management made simple, transparent, and hassle-free.</p>
+            <div class="social-links">
+              <a href="#" class="social-icon-btn" aria-label="Twitter" onclick="showToast('AutoCare Twitter: @AutoCareOfficial', 'info'); return false;">𝕏</a>
+              <a href="#" class="social-icon-btn" aria-label="Facebook" onclick="showToast('AutoCare Facebook: fb.com/AutoCare', 'info'); return false;">f</a>
+              <a href="#" class="social-icon-btn" aria-label="LinkedIn" onclick="showToast('AutoCare LinkedIn: linkedin.com/company/autocare', 'info'); return false;">in</a>
+            </div>
+          </div>
+
+          <div class="footer-col">
+            <h5>Quick Links</h5>
+            <ul class="footer-links">
+              <li><a href="{{ url_for('index') }}">Home</a></li>
+              <li><a href="{{ url_for('index') }}#services">Our Services</a></li>
+              <li><a href="{{ url_for('index') }}#how-it-works">How It Works</a></li>
+              <li><a href="{{ url_for('index') }}#why-us">Why Choose Us</a></li>
+              <li><a href="{{ url_for('index') }}#contact">Get in Touch</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h5>Popular Services</h5>
+            <ul class="footer-links">
+              <li><a href="{{ url_for('index') }}#services">Comprehensive Inspection</a></li>
+              <li><a href="{{ url_for('index') }}#services">Synthetic Oil Change</a></li>
+              <li><a href="{{ url_for('index') }}#services">Brake System Overhaul</a></li>
+              <li><a href="{{ url_for('index') }}#services">3D Laser Wheel Alignment</a></li>
+              <li><a href="{{ url_for('index') }}#services">Air Conditioning Service</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h5>Customer Support</h5>
+            <ul class="footer-links">
+              <li><a href="{{ url_for('login') }}">Client Portal</a></li>
+              <li><a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></li>
+              <li><a href="{{ url_for('terms_conditions') }}">Terms of Service</a></li>
+              <li style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">📞 +1 (800) 555-AUTO</li>
+              <li style="color: var(--text-muted); font-size: 0.85rem;">📍 742 Evergreen Bay, Tech City</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; {{ current_year }} AutoCare Systems Inc. All rights reserved.</p>
+          <div style="display: flex; gap: 1.5rem;">
+            <a href="{{ url_for('privacy_policy') }}">Privacy</a>
+            <a href="{{ url_for('terms_conditions') }}">Terms</a>
+            <a href="{{ url_for('index') }}#contact">Contact</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  {% endblock %}
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,259 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}My Vehicles - AutoCare{% endblock %}
+{% block page_title %}My Garage & Vehicles{% endblock %}
+{% block breadcrumb %}My Vehicles{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Registered Vehicles</h2>
+    <p style="color: var(--text-secondary);">Manage the vehicles tied to your service history and appointments</p>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openModal('add-vehicle-modal')">
+    <span>+</span> Add New Vehicle
+  </button>
+</div>
+
+<!-- Vehicles Cards Grid -->
+{% if vehicles %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem;">
+    {% for v in vehicles %}
+      <div class="card" style="display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+          <div>
+            <span class="badge badge-primary" style="margin-bottom: 0.25rem;">{{ v.vehicle_type }} • {{ v.fuel_type }}</span>
+            <h3 style="font-size: 1.35rem;">{{ v.brand }} {{ v.model }}</h3>
+            <span style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: var(--primary);">{{ v.vehicle_number }}</span>
+          </div>
+          <div style="font-size: 1.75rem;">
+            {% if v.vehicle_type == 'Truck' %}🛻
+            {% elif v.vehicle_type == 'SUV' %}🚙
+            {% elif v.vehicle_type == 'Electric' or v.fuel_type == 'Electric' %}⚡
+            {% else %}🚗{% endif %}
+          </div>
+        </div>
+
+        <div style="background: var(--bg-muted); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.875rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Model Year</span>
+            <div style="font-weight: 600;">{{ v.year }}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Color Finish</span>
+            <div style="font-weight: 600;">{{ v.color }}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Odometer Reading</span>
+            <div style="font-weight: 600;">{{ "{:,}".format(v.current_mileage) }} km</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">Lifetime Services</span>
+            <div style="font-weight: 600;">{{ v.service_count }} completed</div>
+          </div>
+        </div>
+
+        <div style="margin-top: auto; display: flex; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; flex-wrap: wrap;">
+          <a href="{{ url_for('vehicle_detail', vehicle_id=v.id) }}" class="btn btn-primary btn-sm" style="flex: 1;">
+            View Details
+          </a>
+          <a href="{{ url_for('book_service', vehicle_id=v.id) }}" class="btn btn-outline-primary btn-sm" title="Book service for this vehicle">
+            Book
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openEditVehicleModal({{ v.id }}, '{{ v.brand|escape }}', '{{ v.model|escape }}', {{ v.year }}, '{{ v.fuel_type }}', '{{ v.vehicle_type }}', '{{ v.color|escape }}', {{ v.current_mileage }})">
+            Edit
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteVehicle({{ v.id }}, '{{ v.brand|escape }} {{ v.model|escape }} ({{ v.vehicle_number|escape }})')">
+            Delete
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty-state">
+    <div class="empty-state-icon">🚘</div>
+    <h3 class="empty-state-title">No vehicles registered yet</h3>
+    <p class="empty-state-text">Add your vehicle registration and model details to start booking maintenance services.</p>
+    <button type="button" class="btn btn-primary" onclick="openModal('add-vehicle-modal')">
+      <span>+</span> Add Your First Vehicle
+    </button>
+  </div>
+{% endif %}
+
+<!-- Add Vehicle Modal -->
+<div id="add-vehicle-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Register New Vehicle</h4>
+      <button type="button" class="modal-close" onclick="closeModal('add-vehicle-modal')">&times;</button>
+    </div>
+    <form action="{{ url_for('add_vehicle') }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="add-veh-number">License Registration Number *</label>
+          <input type="text" id="add-veh-number" name="vehicle_number" class="form-control" placeholder="e.g. NY-7892-AB" required style="text-transform: uppercase;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="add-veh-brand">Make / Brand *</label>
+            <input type="text" id="add-veh-brand" name="brand" class="form-control" placeholder="e.g. BMW, Toyota, Ford" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-veh-model">Model Name *</label>
+            <input type="text" id="add-veh-model" name="model" class="form-control" placeholder="e.g. 330i, Camry, F-150" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="add-veh-year">Manufacturing Year *</label>
+            <input type="number" id="add-veh-year" name="year" class="form-control" min="1990" max="2027" value="2022" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-veh-color">Color Finish</label>
+            <input type="text" id="add-veh-color" name="color" class="form-control" placeholder="e.g. Alpine White, Black">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="add-veh-fuel">Fuel Type</label>
+            <select id="add-veh-fuel" name="fuel_type" class="form-select">
+              <option value="Petrol">Petrol</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Electric">Electric</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="CNG">CNG</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-veh-type">Vehicle Body Type</label>
+            <select id="add-veh-type" name="vehicle_type" class="form-select">
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Truck">Truck</option>
+              <option value="Van">Van / Minivan</option>
+              <option value="Motorcycle">Motorcycle</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="add-veh-mileage">Current Odometer Mileage (km)</label>
+          <input type="number" id="add-veh-mileage" name="current_mileage" class="form-control" placeholder="25000" min="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-vehicle-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Vehicle</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Vehicle Modal -->
+<div id="edit-vehicle-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4 class="modal-title">Edit Vehicle</h4>
+      <button type="button" class="modal-close" onclick="closeModal('edit-vehicle-modal')">&times;</button>
+    </div>
+    <form id="edit-vehicle-form" method="POST">
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-brand">Brand</label>
+            <input type="text" id="edit-veh-brand" name="brand" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-model">Model</label>
+            <input type="text" id="edit-veh-model" name="model" class="form-control" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-year">Year</label>
+            <input type="number" id="edit-veh-year" name="year" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-color">Color</label>
+            <input type="text" id="edit-veh-color" name="color" class="form-control">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-fuel">Fuel Type</label>
+            <select id="edit-veh-fuel" name="fuel_type" class="form-select">
+              <option value="Petrol">Petrol</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Electric">Electric</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="CNG">CNG</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-veh-type">Vehicle Type</label>
+            <select id="edit-veh-type" name="vehicle_type" class="form-select">
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Truck">Truck</option>
+              <option value="Van">Van</option>
+              <option value="Motorcycle">Motorcycle</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-veh-mileage">Odometer Mileage (km)</label>
+          <input type="number" id="edit-veh-mileage" name="current_mileage" class="form-control" min="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('edit-vehicle-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Vehicle</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Hidden Delete Form -->
+<form id="delete-vehicle-form" method="POST" style="display: none;"></form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditVehicleModal(id, brand, model, year, fuel, type, color, mileage) {
+  document.getElementById('edit-vehicle-form').action = "/vehicles/edit/" + id;
+  document.getElementById('edit-veh-brand').value = brand;
+  document.getElementById('edit-veh-model').value = model;
+  document.getElementById('edit-veh-year').value = year;
+  document.getElementById('edit-veh-fuel').value = fuel;
+  document.getElementById('edit-veh-type').value = type;
+  document.getElementById('edit-veh-color').value = color;
+  document.getElementById('edit-veh-mileage').value = mileage;
+  openModal('edit-vehicle-modal');
+}
+
+function confirmDeleteVehicle(id, displayName) {
+  showConfirmDialog({
+    title: 'Delete Vehicle Registration',
+    message: `Are you sure you want to delete ${displayName}? All associated appointment references and service records will also be removed.`,
+    confirmText: 'Yes, Delete Vehicle',
+    confirmBtnClass: 'btn-danger',
+    onConfirm: () => {
+      const form = document.getElementById('delete-vehicle-form');
+      form.action = "/vehicles/delete/" + id;
+      form.submit();
+    }
+  });
+}
+</script>
+{% endblock %}

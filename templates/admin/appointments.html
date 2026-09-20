@@ -1,0 +1,216 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Manage Appointments - AutoCare Admin{% endblock %}
+{% block page_title %}Service Appointments Master Board{% endblock %}
+{% block breadcrumb %}Appointments{% endblock %}
+
+{% block admin_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>Workshop Appointments</h2>
+    <p style="color: var(--text-secondary);">Manage bay scheduling, assign mechanics, update inspection stages, and close orders</p>
+  </div>
+</div>
+
+<!-- Status Filters -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; overflow-x: auto;">
+  <a href="{{ url_for('admin_appointments', status='all') }}" class="btn btn-sm {% if current_status == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+    All Appointments
+  </a>
+  <a href="{{ url_for('admin_appointments', status='Pending') }}" class="btn btn-sm {% if current_status == 'Pending' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Pending
+  </a>
+  <a href="{{ url_for('admin_appointments', status='Confirmed') }}" class="btn btn-sm {% if current_status == 'Confirmed' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Confirmed
+  </a>
+  <a href="{{ url_for('admin_appointments', status='In Service') }}" class="btn btn-sm {% if current_status == 'In Service' %}btn-primary{% else %}btn-secondary{% endif %}">
+    In Service
+  </a>
+  <a href="{{ url_for('admin_appointments', status='Ready for Pickup') }}" class="btn btn-sm {% if current_status == 'Ready for Pickup' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Ready for Pickup
+  </a>
+  <a href="{{ url_for('admin_appointments', status='Completed') }}" class="btn btn-sm {% if current_status == 'Completed' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Completed
+  </a>
+  <a href="{{ url_for('admin_appointments', status='Cancelled') }}" class="btn btn-sm {% if current_status == 'Cancelled' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Cancelled
+  </a>
+</div>
+
+<!-- Appointments Table Card -->
+<div class="table-card">
+  <div class="table-header-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="table-header-title">Master Appointment Roster</h3>
+      <span class="badge badge-neutral">{{ appointments|length }} bookings</span>
+    </div>
+    <form method="GET" action="{{ url_for('admin_appointments') }}" style="display: flex; gap: 0.5rem;">
+      <input type="hidden" name="status" value="{{ current_status }}">
+      <input type="text" name="q" class="table-search-input" placeholder="Search code, customer, car..." value="{{ search_q }}">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_q %}
+        <a href="{{ url_for('admin_appointments', status=current_status) }}" class="btn btn-secondary btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Customer</th>
+          <th>Vehicle</th>
+          <th>Service Package</th>
+          <th>Scheduled Date & Time</th>
+          <th>Lead Mechanic</th>
+          <th>Current Status</th>
+          <th>Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if appointments %}
+          {% for apt in appointments %}
+            <tr>
+              <td>
+                <a href="{{ url_for('tracking_detail', appointment_id=apt.id) }}" style="font-family: monospace; font-weight: 700; color: var(--primary);">
+                  {{ apt.appointment_code }}
+                </a>
+              </td>
+              <td>
+                <strong>{{ apt.customer_name }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.customer_phone }}</div>
+              </td>
+              <td>
+                <strong>{{ apt.brand }} {{ apt.model }}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.vehicle_number }}</div>
+              </td>
+              <td>{{ apt.service_name }}</td>
+              <td>
+                <div><strong>{{ apt.appointment_date }}</strong></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ apt.time_slot }}</div>
+              </td>
+              <td>
+                {% if apt.mechanic_name %}
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.6rem;" onclick="openAssignMechanicModal({{ apt.id }}, {{ apt.mechanic_id }})">
+                    👨‍🔧 {{ apt.mechanic_name }}
+                  </button>
+                {% else %}
+                  <button type="button" class="btn btn-sm btn-outline-primary" style="font-size: 0.8rem; padding: 0.25rem 0.6rem;" onclick="openAssignMechanicModal({{ apt.id }}, null)">
+                    + Assign Mechanic
+                  </button>
+                {% endif %}
+              </td>
+              <td>
+                {% if apt.status == 'Completed' %}
+                  <span class="badge badge-success">✓ Completed</span>
+                {% elif apt.status == 'In Service' %}
+                  <span class="badge badge-primary">⚙️ In Service</span>
+                {% elif apt.status == 'Ready for Pickup' %}
+                  <span class="badge badge-success">✨ Ready for Pickup</span>
+                {% elif apt.status == 'Cancelled' %}
+                  <span class="badge badge-danger">✕ Cancelled</span>
+                {% else %}
+                  <span class="badge badge-warning">{{ apt.status }}</span>
+                {% endif %}
+              </td>
+              <td><strong>${{ "%.2f"|format(apt.total_amount) }}</strong></td>
+              <td>
+                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openUpdateStatusModal({{ apt.id }}, '{{ apt.status }}')" title="Change Stage">
+                    Status
+                  </button>
+                  <a href="{{ url_for('tracking_detail', appointment_id=apt.id) }}" class="btn btn-secondary btn-sm" title="View Tracker">
+                    Track
+                  </a>
+                  {% if apt.invoice_id %}
+                    <a href="{{ url_for('invoice_detail', invoice_id=apt.invoice_id) }}" class="btn btn-outline-primary btn-sm" title="Invoice">
+                      Invoice
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No appointments found matching this criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Assign Mechanic Modal -->
+<div id="assign-mechanic-modal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 460px;">
+    <div class="modal-header">
+      <h4 class="modal-title">Assign Lead Technician</h4>
+      <button type="button" class="modal-close" onclick="closeModal('assign-mechanic-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="assign-mechanic-select">Select Technician *</label>
+        <select id="assign-mechanic-select" class="form-select">
+          <option value="">-- Choose Mechanic --</option>
+          {% for m in mechanics %}
+            <option value="{{ m.id }}">
+              {{ m.name }} ({{ m.specialization }} • {{ m.availability|capitalize }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('assign-mechanic-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitAssignMechanic()">Assign Technician</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="update-status-modal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-header">
+      <h4 class="modal-title">Advance Service Workflow</h4>
+      <button type="button" class="modal-close" onclick="closeModal('update-status-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="update-status-select">Select New Status *</label>
+        <select id="update-status-select" class="form-select">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Vehicle Received">Vehicle Received</option>
+          <option value="Inspection">Inspection</option>
+          <option value="In Service">In Service</option>
+          <option value="Quality Check">Quality Check</option>
+          <option value="Ready for Pickup">Ready for Pickup</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="update-status-notes">Technician / Completion Notes</label>
+        <textarea id="update-status-notes" class="form-control" rows="3" placeholder="Document replacement parts, labor summary, or diagnostic notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('update-status-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitUpdateStatus()">Save Status</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

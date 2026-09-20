@@ -1,0 +1,61 @@
+{% extends "customer/base_customer.html" %}
+
+{% block title %}Notifications - AutoCare{% endblock %}
+{% block page_title %}Notification Center{% endblock %}
+{% block breadcrumb %}Notifications{% endblock %}
+
+{% block dashboard_content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2>In-App Alerts & Milestones</h2>
+    <p style="color: var(--text-secondary);">Updates on vehicle check-in, repair bay stages, invoices, and completed services</p>
+  </div>
+  {% if unread_notifs_count > 0 %}
+    <button type="button" class="btn btn-secondary btn-sm" onclick="markAllNotificationsRead()">
+      ✓ Mark All as Read
+    </button>
+  {% endif %}
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <ul style="list-style: none;">
+    {% if notifications %}
+      {% for n in notifications %}
+        <li style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 1rem; {% if not n.is_read %}background: var(--primary-light);{% endif %}">
+          <div class="notif-item-icon" style="font-size: 1.5rem;">
+            {% if n.type == 'success' %}✓
+            {% elif n.type == 'warning' %}⚠
+            {% elif n.type == 'status' %}🚗
+            {% else %}ℹ{% endif %}
+          </div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">{{ n.title }}</h4>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">{{ n.created_at }}</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">{{ n.message }}</p>
+            <div style="display: flex; gap: 0.75rem;">
+              {% if n.link %}
+                <a href="{{ n.link }}" class="btn btn-primary btn-sm" onclick="markNotificationAsRead({{ n.id }})">
+                  View Update &rarr;
+                </a>
+              {% endif %}
+              {% if not n.is_read %}
+                <button type="button" class="btn btn-secondary btn-sm" onclick="markNotificationAsRead({{ n.id }})">
+                  Mark as Read
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    {% else %}
+      <li style="text-align: center; padding: 4rem; color: var(--text-muted);">
+        No notifications in your inbox.
+      </li>
+    {% endif %}
+  </ul>
+</div>
+
+{% endblock %}
