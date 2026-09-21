@@ -56,4 +56,4 @@ def check_and_seed():
     user_count = query_db("SELECT COUNT(*) as count FROM users", one=True)
     if not user_count or user_count['count'] == 0:
         from database.seed import seed_data
-        seed_data()
+        seed_data(Config.DATABASE)

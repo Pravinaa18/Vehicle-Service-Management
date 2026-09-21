@@ -4,7 +4,10 @@ from werkzeug.security import generate_password_hash
 
 def seed_data(db_path=None):
     if db_path is None:
-        db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'database.db')
+        if os.environ.get('VERCEL') == '1':
+            db_path = '/tmp/database.db'
+        else:
+            db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'database.db')
     
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
